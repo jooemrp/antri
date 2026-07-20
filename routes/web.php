@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'Welcome')->name('home');
 
 Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk');
+Route::get('/kiosk/state', [KioskController::class, 'state'])->name('kiosk.state');
 Route::post('/kiosk/{service}', [KioskController::class, 'store'])->name('kiosk.issue');
 
 Route::get('/display', [DisplayController::class, 'index'])->name('display');
