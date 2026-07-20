@@ -1,0 +1,121 @@
+<script setup lang="ts">
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { computed, reactive, ref } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { dashboard } from '@/routes';
+
+interface BrandingProps {
+    app_name: string;
+    logo_path: string | null;
+    logo_url: string | null;
+    primary_color: string;
+    accent_color: string;
+    running_text: string | null;
+}
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            { title: 'Dashboard', href: dashboard() },
+            { title: 'Tampilan', href: '/admin/branding' },
+        ],
+    },
+});
+
+const props = defineProps<{
+    branding: BrandingProps;
+}>();
+
+const page = usePage();
+const errors = computed(() => page.props.errors);
+
+const form = reactive({
+    app_name: props.branding.app_name,
+    primary_color: props.branding.primary_color,
+    accent_color: props.branding.accent_color,
+    running_text: props.branding.running_text ?? '',
+    logo: null as File | null,
+});
+
+const logoPreview = ref<string | null>(props.branding.logo_url);
+
+function onLogoChange(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.logo = file;
+    logoPreview.value = file ? URL.createObjectURL(file) : props.branding.logo_url;
+}
+
+function submit() {
+    router.post(
+        '/admin/branding',
+        {
+            app_name: form.app_name,
+            primary_color: form.primary_color,
+            accent_color: form.accent_color,
+            running_text: form.running_text,
+            logo: form.logo,
+        },
+        { forceFormData: true, preserveScroll: true },
+    );
+}
+</script>
+
+<template>
+    <Head title="Tampilan" />
+
+    <div class="flex h-full flex-1 flex-col gap-4 p-4">
+        <Card>
+            <CardHeader>
+                <CardTitle>Tampilan Aplikasi</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form class="grid max-w-xl gap-4" @submit.prevent="submit">
+                    <div class="grid gap-2">
+                        <Label for="app-name">Nama Aplikasi</Label>
+                        <Input id="app-name" v-model="form.app_name" />
+                        <InputError :message="errors.app_name" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="primary-color">Warna Utama</Label>
+                            <input id="primary-color" v-model="form.primary_color" type="color" class="h-9 w-full rounded-md border border-input" />
+                            <InputError :message="errors.primary_color" />
+                        </div>
+                        <div class="grid gap-2">
+                            <Label for="accent-color">Warna Aksen</Label>
+                            <input id="accent-color" v-model="form.accent_color" type="color" class="h-9 w-full rounded-md border border-input" />
+                            <InputError :message="errors.accent_color" />
+                        </div>
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="running-text">Teks Berjalan</Label>
+                        <Input id="running-text" v-model="form.running_text" placeholder="Selamat datang..." />
+                        <InputError :message="errors.running_text" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="logo">Logo</Label>
+                        <img
+                            v-if="logoPreview"
+                            :src="logoPreview"
+                            alt="Logo saat ini"
+                            class="h-16 w-16 rounded object-contain"
+                        >
+                        <input id="logo" type="file" accept="image/*" @change="onLogoChange">
+                        <InputError :message="errors.logo" />
+                    </div>
+
+                    <div>
+                        <Button type="submit">Simpan</Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+    </div>
+</template>
