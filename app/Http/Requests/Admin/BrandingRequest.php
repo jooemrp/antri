@@ -18,7 +18,11 @@ class BrandingRequest extends FormRequest
             'app_name' => ['required', 'string', 'max:255'],
             'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'accent_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'running_text' => ['nullable', 'string'],
+            'running_texts' => ['nullable', 'array'],
+            // Blank rows arrive as null: the global ConvertEmptyStringsToNull
+            // middleware rewrites '' before validation. Branding::clean() drops them.
+            'running_texts.*' => ['nullable', 'string', 'max:500'],
+            'display_theme' => ['required', 'in:dark,light'],
             'logo' => ['nullable', 'image', 'max:2048'],
         ];
     }

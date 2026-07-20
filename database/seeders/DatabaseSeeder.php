@@ -67,7 +67,7 @@ class DatabaseSeeder extends Seeder
             'app_name' => 'Antrian Disdukcapil',
             'primary_color' => '#2563eb',
             'accent_color' => '#16a34a',
-            'running_text' => 'Selamat datang di Dinas Kependudukan dan Pencatatan Sipil',
+            'running_text' => json_encode([\App\Support\Branding::DEFAULT_RUNNING_TEXT]),
         ];
 
         foreach ($defaultSettings as $key => $value) {

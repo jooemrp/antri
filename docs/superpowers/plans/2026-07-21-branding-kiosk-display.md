@@ -202,7 +202,9 @@ In `app/Http/Requests/Admin/BrandingRequest.php`, replace the `running_text` lin
 
 ```php
             'running_texts' => ['nullable', 'array'],
-            'running_texts.*' => ['string', 'max:500'],
+            // Blank rows arrive as null: the global ConvertEmptyStringsToNull
+            // middleware rewrites '' before validation. Branding::clean() drops them.
+            'running_texts.*' => ['nullable', 'string', 'max:500'],
             'display_theme' => ['required', 'in:dark,light'],
 ```
 
