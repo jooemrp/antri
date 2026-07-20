@@ -71,7 +71,14 @@ function submit() {
             display_theme: form.display_theme,
             logo: form.logo,
         },
-        { forceFormData: true, preserveScroll: true },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                form.running_texts = [...props.branding.running_texts];
+                form.display_theme = props.branding.display_theme;
+            },
+        },
     );
 }
 </script>
@@ -110,22 +117,24 @@ function submit() {
                         <div
                             v-for="(_, index) in form.running_texts"
                             :key="index"
-                            class="flex items-center gap-2"
                         >
-                            <Input
-                                v-model="form.running_texts[index]"
-                                placeholder="Selamat datang..."
-                                class="flex-1"
-                            />
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                aria-label="Hapus teks"
-                                @click="removeRunningText(index)"
-                            >
-                                <Trash2 class="size-4" />
-                            </Button>
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model="form.running_texts[index]"
+                                    placeholder="Selamat datang..."
+                                    class="flex-1"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Hapus teks"
+                                    @click="removeRunningText(index)"
+                                >
+                                    <Trash2 class="size-4" />
+                                </Button>
+                            </div>
+                            <InputError :message="errors[`running_texts.${index}`]" />
                         </div>
                         <div>
                             <Button type="button" variant="outline" size="sm" @click="addRunningText">

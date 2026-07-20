@@ -104,3 +104,16 @@ test('an empty stored array means no running text', function () {
 test('display theme defaults to dark', function () {
     expect(Branding::resolve()['display_theme'])->toBe('dark');
 });
+
+test('a running text entry longer than 500 characters fails validation on its indexed key', function () {
+    $response = $this->post(route('admin.branding.update'), [
+        'app_name' => 'Disdukcapil',
+        'primary_color' => '#123456',
+        'accent_color' => '#654321',
+        'display_theme' => 'dark',
+        'running_texts' => ['Teks satu', str_repeat('a', 501)],
+    ]);
+
+    $response->assertSessionHasErrors('running_texts.1');
+    $response->assertSessionDoesntHaveErrors('running_texts.0');
+});
