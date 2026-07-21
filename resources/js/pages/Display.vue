@@ -81,6 +81,12 @@ function applyHtmlDarkClass() {
 
 watch(isDark, applyHtmlDarkClass);
 
+// useAppearance's global listener re-derives html.dark from the OS preference
+// whenever that changes, which would silently undo the theme chosen here — a
+// real scenario for a display left running through a scheduled sunset switch.
+// Ours is registered on mount, so it runs after theirs and re-asserts.
+const systemThemeQuery = typeof window === 'undefined' ? null : window.matchMedia('(prefers-color-scheme: dark)');
+
 function spellCode(code: string): string {
     return code.replace(/-/g, ' ');
 }
@@ -192,6 +198,7 @@ async function fetchState() {
 onMounted(() => {
     originalHtmlDark = document.documentElement.classList.contains('dark');
     applyHtmlDarkClass();
+    systemThemeQuery?.addEventListener('change', applyHtmlDarkClass);
 
     fetchState();
     pollTimer = setInterval(fetchState, 3000);
@@ -201,6 +208,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    systemThemeQuery?.removeEventListener('change', applyHtmlDarkClass);
     document.documentElement.classList.toggle('dark', originalHtmlDark);
 
     if (pollTimer) {
