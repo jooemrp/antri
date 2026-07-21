@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { Trash2 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -7,15 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
-
-interface BrandingProps {
-    app_name: string;
-    logo_path: string | null;
-    logo_url: string | null;
-    primary_color: string;
-    accent_color: string;
-    running_text: string | null;
-}
+import type { Branding } from '@/types';
 
 defineOptions({
     layout: {
@@ -27,7 +20,7 @@ defineOptions({
 });
 
 const props = defineProps<{
-    branding: BrandingProps;
+    branding: Branding;
 }>();
 
 const page = usePage();
@@ -37,7 +30,8 @@ const form = reactive({
     app_name: props.branding.app_name,
     primary_color: props.branding.primary_color,
     accent_color: props.branding.accent_color,
-    running_text: props.branding.running_text ?? '',
+    running_texts: [...props.branding.running_texts],
+    display_theme: props.branding.display_theme,
     logo: null as File | null,
 });
 
@@ -49,6 +43,14 @@ function onLogoChange(event: Event) {
     logoPreview.value = file ? URL.createObjectURL(file) : props.branding.logo_url;
 }
 
+function addRunningText() {
+    form.running_texts.push('');
+}
+
+function removeRunningText(index: number) {
+    form.running_texts.splice(index, 1);
+}
+
 function submit() {
     router.post(
         '/admin/branding',
@@ -56,10 +58,18 @@ function submit() {
             app_name: form.app_name,
             primary_color: form.primary_color,
             accent_color: form.accent_color,
-            running_text: form.running_text,
+            running_texts: form.running_texts,
+            display_theme: form.display_theme,
             logo: form.logo,
         },
-        { forceFormData: true, preserveScroll: true },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                form.running_texts = [...props.branding.running_texts];
+                form.display_theme = props.branding.display_theme;
+            },
+        },
     );
 }
 </script>
@@ -94,9 +104,51 @@ function submit() {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="running-text">Teks Berjalan</Label>
-                        <Input id="running-text" v-model="form.running_text" placeholder="Selamat datang..." />
-                        <InputError :message="errors.running_text" />
+                        <Label>Teks Berjalan</Label>
+                        <div
+                            v-for="(_, index) in form.running_texts"
+                            :key="index"
+                        >
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model="form.running_texts[index]"
+                                    placeholder="Selamat datang..."
+                                    class="flex-1"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    :aria-label="`Hapus teks ${index + 1}`"
+                                    @click="removeRunningText(index)"
+                                >
+                                    <Trash2 class="size-4" />
+                                </Button>
+                            </div>
+                            <InputError :message="errors[`running_texts.${index}`]" />
+                        </div>
+                        <div>
+                            <Button type="button" variant="outline" size="sm" @click="addRunningText">
+                                Tambah Teks
+                            </Button>
+                        </div>
+                        <p class="text-sm text-muted-foreground">
+                            Semua teks ditampilkan berurutan pada layar display.
+                        </p>
+                        <InputError :message="errors.running_texts" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="display-theme">Tema Layar Display</Label>
+                        <select
+                            id="display-theme"
+                            v-model="form.display_theme"
+                            class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                            <option value="dark">Gelap</option>
+                            <option value="light">Terang</option>
+                        </select>
+                        <InputError :message="errors.display_theme" />
                     </div>
 
                     <div class="grid gap-2">

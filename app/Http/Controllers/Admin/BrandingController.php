@@ -32,7 +32,8 @@ class BrandingController extends Controller
         Setting::set('app_name', $validated['app_name']);
         Setting::set('primary_color', $validated['primary_color']);
         Setting::set('accent_color', $validated['accent_color']);
-        Setting::set('running_text', $validated['running_text'] ?? null);
+        Setting::set('running_text', json_encode(Branding::clean($validated['running_texts'] ?? [])));
+        Setting::set('display_theme', $validated['display_theme']);
 
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('branding', 'public');

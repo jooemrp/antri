@@ -6,13 +6,13 @@ Warga mengambil nomor di **kiosk**, petugas memanggil nomor dari **operator cons
 
 ## Fitur
 
-- **Kiosk** (`/kiosk`, publik) — layar sentuh; warga memilih KTP atau KK dan mendapat nomor antrian yang bisa dicetak. Penomoran berurutan per layanan dan reset setiap hari (`A-001` untuk KTP, `B-001` untuk KK).
-- **Layar Display / pemanggil** (`/display`, publik) — untuk TV ruang tunggu: panel "sedang memanggil", papan per loket, running text, dan **pengumuman suara** via Web Speech API (`id-ID`) beserta nada bel; mengumumkan ulang saat nomor dipanggil ulang.
+- **Kiosk** (`/kiosk`, publik) — layar sentuh; warga memilih KTP atau KK dan mendapat nomor antrian yang bisa dicetak. Penomoran berurutan per layanan dan reset setiap hari (`A-001` untuk KTP, `B-001` untuk KK). Di bawah tombol layanan tertera nomor terakhir diambil dan nomor yang sedang dipanggil untuk tiap layanan, diperbarui tiap 3 detik.
+- **Layar Display / pemanggil** (`/display`, publik) — untuk TV ruang tunggu: panel "sedang memanggil", papan per loket, running text, dan **pengumuman suara** via Web Speech API (`id-ID`) beserta nada bel; mengumumkan ulang saat nomor dipanggil ulang. Tema gelap atau terang dapat dipilih dari dashboard.
 - **Operator console** (`/operator`, login) — petugas memilih loketnya lalu **Panggil Berikutnya / Panggil Ulang / Lewati / Selesai**. Antrian menyegar otomatis (polling tiap 3 detik).
 - **Dashboard** (`/dashboard`, login) — statistik hari ini (total, menunggu, selesai, loket aktif) dan rincian per layanan.
 - **Kelola Loket** (`/admin/lokets`, login) — CRUD loket; tambah loket sebanyak yang dibutuhkan, masing-masing dengan **nama loket + nama petugas**.
 - **Kelola Layanan** (`/admin/services`, login) — ubah nama, prefix, dan warna jalur layanan (KTP/KK).
-- **Tampilan / Branding** (`/admin/branding`, login) — nama aplikasi, unggah logo, warna primer/aksen, dan running text. Branding diterapkan ke seluruh aplikasi.
+- **Tampilan / Branding** (`/admin/branding`, login) — nama aplikasi, unggah logo, warna primer/aksen, running text (bisa lebih dari satu), serta tema layar display. Branding diterapkan ke seluruh aplikasi.
 
 ## Teknologi
 
@@ -90,11 +90,12 @@ Seeder juga membuat layanan **KTP** & **KK**, beberapa loket contoh, dan pengatu
 - **Suara di layar Display**: browser memblokir audio sampai ada interaksi pengguna — klik tombol **"Aktifkan Suara"** sekali saat layar dibuka. Mesin display juga membutuhkan voice **`id-ID`** terpasang di sistem operasinya agar pengumuman terbaca dalam Bahasa Indonesia.
 - **Reset harian** nomor antrian berbasis tanggal (`issued_date`) — otomatis mulai dari 1 setiap hari, tanpa perlu cron.
 - **Peran pengguna**: saat ini setiap pengguna terautentikasi dapat mengoperasikan loket sekaligus mengelola admin (belum ada pemisahan peran operator vs admin).
+- **Rollback branding multi-teks**: jika branch fitur running text bertumpuk ini di-revert setelah admin sempat menyimpan pengaturan, kolom `running_text` di database akan berisi array JSON (mis. `["Selamat datang..."]`) yang oleh versi lama akan ditampilkan apa adanya di layar Display (termasuk tanda kurung dan kutipnya). Cukup buka kembali **Tampilan / Branding** dan simpan ulang untuk memperbaikinya.
 
 ## Pengujian
 
 ```bash
-php artisan test        # 65 tests
+php artisan test        # 77 tests
 npm run types:check     # vue-tsc
 npm run lint:check      # eslint
 ```
