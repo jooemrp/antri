@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 interface DisplayLoket {
     id: number;
@@ -11,15 +11,6 @@ interface DisplayLoket {
         name: string;
         color: string | null;
     } | null;
-}
-
-interface Branding {
-    app_name: string;
-    logo_url: string | null;
-    primary_color: string;
-    accent_color: string;
-    running_texts: string[];
-    display_theme: 'dark' | 'light';
 }
 
 interface Call {
@@ -41,7 +32,7 @@ defineProps<{
     lokets: DisplayLoket[];
 }>();
 
-const branding = computed(() => usePage().props.branding as Branding);
+const branding = computed(() => usePage().props.branding);
 
 const calls = ref<Call[]>([]);
 const latest = ref<Latest | null>(null);
@@ -65,6 +56,30 @@ const clockLabel = computed(() =>
 const isDark = computed(() => branding.value.display_theme !== 'light');
 
 const marqueeText = computed(() => branding.value.running_texts.join('  •  '));
+
+// Calibrated so the default single sentence (56 characters) scrolls at the
+// pre-existing ~20s pace; longer joined text takes proportionally longer
+// instead of scrolling faster, and a floor keeps very short text readable.
+const MARQUEE_CHARS_PER_SECOND = 56 / 20;
+const MARQUEE_MIN_DURATION_SECONDS = 10;
+
+const marqueeDurationSeconds = computed(() =>
+    Math.max(MARQUEE_MIN_DURATION_SECONDS, marqueeText.value.length / MARQUEE_CHARS_PER_SECOND),
+);
+
+// The display's html.dark class is driven by branding.display_theme for as
+// long as this page is mounted (see app.css's `dark` variant, which matches
+// any descendant of a `.dark` ancestor — the local wrapper class alone can't
+// override an already-dark <html>). The original state is restored on
+// unmount so navigating away (e.g. back to the dashboard) doesn't leave the
+// dashboard's own theme flipped.
+let originalHtmlDark = false;
+
+function applyHtmlDarkClass() {
+    document.documentElement.classList.toggle('dark', isDark.value);
+}
+
+watch(isDark, applyHtmlDarkClass);
 
 function spellCode(code: string): string {
     return code.replace(/-/g, ' ');
@@ -146,6 +161,11 @@ async function fetchState() {
 
     try {
         const response = await fetch('/display/state');
+
+        if (!response.ok) {
+            return;
+        }
+
         const data = await response.json();
 
         calls.value = data.calls;
@@ -162,12 +182,17 @@ async function fetchState() {
                 }
             }
         }
+    } catch {
+        // Network or parsing failure — keep the last-known state on screen.
     } finally {
         isFetching = false;
     }
 }
 
 onMounted(() => {
+    originalHtmlDark = document.documentElement.classList.contains('dark');
+    applyHtmlDarkClass();
+
     fetchState();
     pollTimer = setInterval(fetchState, 3000);
     clockTimer = setInterval(() => {
@@ -176,6 +201,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    document.documentElement.classList.toggle('dark', originalHtmlDark);
+
     if (pollTimer) {
         clearInterval(pollTimer);
     }
@@ -255,8 +282,11 @@ onUnmounted(() => {
                 </section>
             </main>
 
-            <footer class="overflow-hidden border-t border-slate-300 bg-white py-4 dark:border-white/10 dark:bg-black/40">
-                <div v-if="marqueeText" class="marquee whitespace-nowrap text-2xl font-medium">
+            <footer v-if="marqueeText" class="overflow-hidden border-t border-slate-300 bg-white py-4 dark:border-white/10 dark:bg-black/40">
+                <div
+                    class="marquee whitespace-nowrap text-2xl font-medium"
+                    :style="{ animationDuration: `${marqueeDurationSeconds}s` }"
+                >
                     <span class="mx-8">{{ marqueeText }}</span>
                     <span class="mx-8">{{ marqueeText }}</span>
                 </div>
@@ -268,7 +298,9 @@ onUnmounted(() => {
 <style scoped>
 .marquee {
     display: inline-flex;
-    animation: marquee-scroll 20s linear infinite;
+    animation-name: marquee-scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
 }
 
 @keyframes marquee-scroll {

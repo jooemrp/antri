@@ -4,9 +4,7 @@ import { computed } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
 const appName = computed(() => {
-    const branding = usePage().props.branding as { app_name?: string } | undefined;
-
-    return branding?.app_name || 'Laravel Starter Kit';
+    return usePage().props.branding?.app_name || 'Laravel Starter Kit';
 });
 </script>
 

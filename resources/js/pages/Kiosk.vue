@@ -16,21 +16,12 @@ interface IssuedTicket {
     issued_at: string;
 }
 
-interface Branding {
-    app_name: string;
-    logo_url: string | null;
-    primary_color: string;
-    accent_color: string;
-    running_texts: string[];
-    display_theme: 'dark' | 'light';
-}
-
 const props = defineProps<{
     services: KioskService[];
     issuedTicket?: IssuedTicket | null;
 }>();
 
-const branding = computed(() => usePage().props.branding as Branding);
+const branding = computed(() => usePage().props.branding);
 
 interface ServiceState {
     id: number;
@@ -54,9 +45,16 @@ async function fetchState() {
 
     try {
         const response = await fetch('/kiosk/state');
+
+        if (!response.ok) {
+            return;
+        }
+
         const data = await response.json();
 
         serviceStates.value = data.services;
+    } catch {
+        // Network or parsing failure — keep the last-known state on screen.
     } finally {
         isFetching = false;
     }

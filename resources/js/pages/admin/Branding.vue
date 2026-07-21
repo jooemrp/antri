@@ -8,16 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes';
-
-interface BrandingProps {
-    app_name: string;
-    logo_path: string | null;
-    logo_url: string | null;
-    primary_color: string;
-    accent_color: string;
-    running_texts: string[];
-    display_theme: 'dark' | 'light';
-}
+import type { Branding } from '@/types';
 
 defineOptions({
     layout: {
@@ -29,7 +20,7 @@ defineOptions({
 });
 
 const props = defineProps<{
-    branding: BrandingProps;
+    branding: Branding;
 }>();
 
 const page = usePage();
@@ -128,7 +119,7 @@ function submit() {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label="Hapus teks"
+                                    :aria-label="`Hapus teks ${index + 1}`"
                                     @click="removeRunningText(index)"
                                 >
                                     <Trash2 class="size-4" />
