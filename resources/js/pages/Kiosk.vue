@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 
 interface KioskService {
@@ -21,7 +21,8 @@ interface Branding {
     logo_url: string | null;
     primary_color: string;
     accent_color: string;
-    running_text: string;
+    running_texts: string[];
+    display_theme: 'dark' | 'light';
 }
 
 const props = defineProps<{
@@ -30,6 +31,47 @@ const props = defineProps<{
 }>();
 
 const branding = computed(() => usePage().props.branding as Branding);
+
+interface ServiceState {
+    id: number;
+    name: string;
+    color: string | null;
+    last_issued: string | null;
+    last_called: string | null;
+}
+
+const serviceStates = ref<ServiceState[]>([]);
+
+let isFetching = false;
+let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+async function fetchState() {
+    if (isFetching) {
+        return;
+    }
+
+    isFetching = true;
+
+    try {
+        const response = await fetch('/kiosk/state');
+        const data = await response.json();
+
+        serviceStates.value = data.services;
+    } finally {
+        isFetching = false;
+    }
+}
+
+onMounted(() => {
+    fetchState();
+    pollTimer = setInterval(fetchState, 3000);
+});
+
+onUnmounted(() => {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+    }
+});
 
 const issuedAtLabel = computed(() => {
     if (!props.issuedTicket) {
@@ -43,7 +85,10 @@ const issuedAtLabel = computed(() => {
 });
 
 function issue(service: KioskService) {
-    router.post(`/kiosk/${service.id}`, {}, { preserveScroll: true });
+    router.post(`/kiosk/${service.id}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => fetchState(),
+    });
 }
 
 function reset() {
@@ -95,6 +140,35 @@ function print() {
                         {{ service.name }}
                     </span>
                 </button>
+            </div>
+
+            <div v-if="serviceStates.length" class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 print:hidden">
+                <div
+                    v-for="state in serviceStates"
+                    :key="state.id"
+                    class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+                >
+                    <p
+                        class="text-sm font-semibold tracking-wide uppercase"
+                        :style="{ color: state.color ?? undefined }"
+                    >
+                        {{ state.name }}
+                    </p>
+                    <dl class="mt-3 grid gap-2">
+                        <div class="flex items-baseline justify-between gap-4">
+                            <dt class="text-sm text-slate-500 dark:text-slate-400">Terakhir diambil</dt>
+                            <dd class="text-2xl font-bold text-slate-900 tabular-nums dark:text-slate-100">
+                                {{ state.last_issued ?? '—' }}
+                            </dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-4">
+                            <dt class="text-sm text-slate-500 dark:text-slate-400">Sedang dipanggil</dt>
+                            <dd class="text-2xl font-bold text-slate-900 tabular-nums dark:text-slate-100">
+                                {{ state.last_called ?? '—' }}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
             </div>
         </main>
 
