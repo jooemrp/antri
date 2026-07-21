@@ -18,7 +18,8 @@ interface Branding {
     logo_url: string | null;
     primary_color: string;
     accent_color: string;
-    running_text: string;
+    running_texts: string[];
+    display_theme: 'dark' | 'light';
 }
 
 interface Call {
@@ -60,6 +61,10 @@ const clockLabel = computed(() =>
         second: '2-digit',
     }),
 );
+
+const isDark = computed(() => branding.value.display_theme !== 'light');
+
+const marqueeText = computed(() => branding.value.running_texts.join('  •  '));
 
 function spellCode(code: string): string {
     return code.replace(/-/g, ' ');
@@ -184,10 +189,11 @@ onUnmounted(() => {
 <template>
     <Head title="Display" />
 
-    <div class="flex min-h-screen flex-col bg-slate-950 text-white">
+    <div :class="{ dark: isDark }">
+        <div class="flex min-h-screen flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white">
         <div
             v-if="!soundEnabled"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80"
         >
             <button
                 type="button"
@@ -198,7 +204,7 @@ onUnmounted(() => {
             </button>
         </div>
 
-        <header class="flex items-center justify-between border-b border-white/10 px-10 py-6">
+        <header class="flex items-center justify-between border-b border-slate-300 dark:border-white/10 px-10 py-6">
             <div class="flex items-center gap-4">
                 <img
                     v-if="branding.logo_url"
@@ -213,19 +219,19 @@ onUnmounted(() => {
 
         <main class="flex flex-1 flex-col gap-8 px-10 py-8">
             <section
-                class="flex flex-col items-center justify-center rounded-3xl bg-blue-950/40 py-12 text-center"
+                class="flex flex-col items-center justify-center rounded-3xl bg-blue-100 py-12 text-center dark:bg-blue-950/40"
             >
                 <template v-if="latest">
-                    <p class="text-2xl font-medium tracking-widest text-blue-300 uppercase">
+                    <p class="text-2xl font-medium tracking-widest text-blue-700 uppercase dark:text-blue-300">
                         Sedang Dipanggil
                     </p>
                     <p class="mt-4 text-8xl font-black tracking-wider">{{ latest.code }}</p>
-                    <p class="mt-4 text-4xl font-semibold text-blue-200">
+                    <p class="mt-4 text-4xl font-semibold text-blue-700 dark:text-blue-200">
                         Menuju {{ latest.loket_name }}
                     </p>
                 </template>
                 <template v-else>
-                    <p class="text-3xl font-medium text-blue-200">Belum ada panggilan</p>
+                    <p class="text-3xl font-medium text-blue-700 dark:text-blue-200">Belum ada panggilan</p>
                 </template>
             </section>
 
@@ -233,9 +239,9 @@ onUnmounted(() => {
                 <div
                     v-for="call in calls"
                     :key="call.loket_id"
-                    class="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/5 p-6 text-center"
+                    class="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-6 text-center shadow-sm dark:bg-white/5 dark:shadow-none"
                 >
-                    <p class="text-lg font-medium text-white/70">{{ call.loket_name }}</p>
+                    <p class="text-lg font-medium text-slate-600 dark:text-white/70">{{ call.loket_name }}</p>
                     <p
                         class="text-sm font-semibold tracking-wide uppercase"
                         :style="{ color: call.service_color ?? undefined }"
@@ -249,12 +255,13 @@ onUnmounted(() => {
             </section>
         </main>
 
-        <footer class="overflow-hidden border-t border-white/10 bg-black/40 py-4">
-            <div class="marquee whitespace-nowrap text-2xl font-medium">
-                <span class="mx-8">{{ branding.running_text }}</span>
-                <span class="mx-8">{{ branding.running_text }}</span>
+        <footer class="overflow-hidden border-t border-slate-300 bg-white py-4 dark:border-white/10 dark:bg-black/40">
+            <div v-if="marqueeText" class="marquee whitespace-nowrap text-2xl font-medium">
+                <span class="mx-8">{{ marqueeText }}</span>
+                <span class="mx-8">{{ marqueeText }}</span>
             </div>
         </footer>
+        </div>
     </div>
 </template>
 
