@@ -191,76 +191,76 @@ onUnmounted(() => {
 
     <div :class="{ dark: isDark }">
         <div class="flex min-h-screen flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white">
-        <div
-            v-if="!soundEnabled"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80"
-        >
-            <button
-                type="button"
-                class="rounded-2xl bg-blue-600 px-10 py-6 text-3xl font-bold shadow-xl transition hover:bg-blue-500"
-                @click="enableSound"
+            <div
+                v-if="!soundEnabled"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80"
             >
-                Aktifkan Suara
-            </button>
-        </div>
-
-        <header class="flex items-center justify-between border-b border-slate-300 dark:border-white/10 px-10 py-6">
-            <div class="flex items-center gap-4">
-                <img
-                    v-if="branding.logo_url"
-                    :src="branding.logo_url"
-                    :alt="branding.app_name"
-                    class="h-14 w-auto"
-                />
-                <h1 class="text-3xl font-bold">{{ branding.app_name }}</h1>
-            </div>
-            <div class="text-4xl font-mono font-semibold tabular-nums">{{ clockLabel }}</div>
-        </header>
-
-        <main class="flex flex-1 flex-col gap-8 px-10 py-8">
-            <section
-                class="flex flex-col items-center justify-center rounded-3xl bg-blue-100 py-12 text-center dark:bg-blue-950/40"
-            >
-                <template v-if="latest">
-                    <p class="text-2xl font-medium tracking-widest text-blue-700 uppercase dark:text-blue-300">
-                        Sedang Dipanggil
-                    </p>
-                    <p class="mt-4 text-8xl font-black tracking-wider">{{ latest.code }}</p>
-                    <p class="mt-4 text-4xl font-semibold text-blue-700 dark:text-blue-200">
-                        Menuju {{ latest.loket_name }}
-                    </p>
-                </template>
-                <template v-else>
-                    <p class="text-3xl font-medium text-blue-700 dark:text-blue-200">Belum ada panggilan</p>
-                </template>
-            </section>
-
-            <section class="grid flex-1 grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-                <div
-                    v-for="call in calls"
-                    :key="call.loket_id"
-                    class="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-6 text-center shadow-sm dark:bg-white/5 dark:shadow-none"
+                <button
+                    type="button"
+                    class="rounded-2xl bg-blue-600 text-white px-10 py-6 text-3xl font-bold shadow-xl transition hover:bg-blue-500"
+                    @click="enableSound"
                 >
-                    <p class="text-lg font-medium text-slate-600 dark:text-white/70">{{ call.loket_name }}</p>
-                    <p
-                        class="text-sm font-semibold tracking-wide uppercase"
-                        :style="{ color: call.service_color ?? undefined }"
-                    >
-                        {{ call.service_name }}
-                    </p>
-                    <p class="mt-2 text-5xl font-black tracking-wider">
-                        {{ call.code ?? '—' }}
-                    </p>
-                </div>
-            </section>
-        </main>
-
-        <footer class="overflow-hidden border-t border-slate-300 bg-white py-4 dark:border-white/10 dark:bg-black/40">
-            <div v-if="marqueeText" class="marquee whitespace-nowrap text-2xl font-medium">
-                <span class="mx-8">{{ marqueeText }}</span>
-                <span class="mx-8">{{ marqueeText }}</span>
+                    Aktifkan Suara
+                </button>
             </div>
-        </footer>
+
+            <header class="flex items-center justify-between border-b border-slate-300 dark:border-white/10 px-10 py-6">
+                <div class="flex items-center gap-4">
+                    <img
+                        v-if="branding.logo_url"
+                        :src="branding.logo_url"
+                        :alt="branding.app_name"
+                        class="h-14 w-auto"
+                    />
+                    <h1 class="text-3xl font-bold">{{ branding.app_name }}</h1>
+                </div>
+                <div class="text-4xl font-mono font-semibold tabular-nums">{{ clockLabel }}</div>
+            </header>
+
+            <main class="flex flex-1 flex-col gap-8 px-10 py-8">
+                <section
+                    class="flex flex-col items-center justify-center rounded-3xl bg-blue-100 py-12 text-center dark:bg-blue-950/40"
+                >
+                    <template v-if="latest">
+                        <p class="text-2xl font-medium tracking-widest text-blue-700 uppercase dark:text-blue-300">
+                            Sedang Dipanggil
+                        </p>
+                        <p class="mt-4 text-8xl font-black tracking-wider">{{ latest.code }}</p>
+                        <p class="mt-4 text-4xl font-semibold text-blue-700 dark:text-blue-200">
+                            Menuju {{ latest.loket_name }}
+                        </p>
+                    </template>
+                    <template v-else>
+                        <p class="text-3xl font-medium text-blue-700 dark:text-blue-200">Belum ada panggilan</p>
+                    </template>
+                </section>
+
+                <section class="grid flex-1 grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+                    <div
+                        v-for="call in calls"
+                        :key="call.loket_id"
+                        class="flex flex-col items-center justify-center gap-2 rounded-2xl bg-white p-6 text-center shadow-sm dark:bg-white/5 dark:shadow-none"
+                    >
+                        <p class="text-lg font-medium text-slate-600 dark:text-white/70">{{ call.loket_name }}</p>
+                        <p
+                            class="text-sm font-semibold tracking-wide uppercase"
+                            :style="{ color: call.service_color ?? undefined }"
+                        >
+                            {{ call.service_name }}
+                        </p>
+                        <p class="mt-2 text-5xl font-black tracking-wider">
+                            {{ call.code ?? '—' }}
+                        </p>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="overflow-hidden border-t border-slate-300 bg-white py-4 dark:border-white/10 dark:bg-black/40">
+                <div v-if="marqueeText" class="marquee whitespace-nowrap text-2xl font-medium">
+                    <span class="mx-8">{{ marqueeText }}</span>
+                    <span class="mx-8">{{ marqueeText }}</span>
+                </div>
+            </footer>
         </div>
     </div>
 </template>
