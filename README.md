@@ -90,11 +90,12 @@ Seeder juga membuat layanan **KTP** & **KK**, beberapa loket contoh, dan pengatu
 - **Suara di layar Display**: browser memblokir audio sampai ada interaksi pengguna — klik tombol **"Aktifkan Suara"** sekali saat layar dibuka. Mesin display juga membutuhkan voice **`id-ID`** terpasang di sistem operasinya agar pengumuman terbaca dalam Bahasa Indonesia.
 - **Reset harian** nomor antrian berbasis tanggal (`issued_date`) — otomatis mulai dari 1 setiap hari, tanpa perlu cron.
 - **Peran pengguna**: saat ini setiap pengguna terautentikasi dapat mengoperasikan loket sekaligus mengelola admin (belum ada pemisahan peran operator vs admin).
+- **Rollback branding multi-teks**: jika branch fitur running text bertumpuk ini di-revert setelah admin sempat menyimpan pengaturan, kolom `running_text` di database akan berisi array JSON (mis. `["Selamat datang..."]`) yang oleh versi lama akan ditampilkan apa adanya di layar Display (termasuk tanda kurung dan kutipnya). Cukup buka kembali **Tampilan / Branding** dan simpan ulang untuk memperbaikinya.
 
 ## Pengujian
 
 ```bash
-php artisan test        # 65 tests
+php artisan test        # 77 tests
 npm run types:check     # vue-tsc
 npm run lint:check      # eslint
 ```
