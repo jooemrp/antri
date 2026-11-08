@@ -5,9 +5,12 @@ import {
     ArrowUp,
     ImageUp,
     Moon,
+    Palette,
     Plus,
     Sun,
     Trash2,
+    TriangleAlert,
+    X,
 } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
@@ -16,9 +19,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { readableTextColor } from '@/lib/color';
+import { contrastRatio, readableTextColor } from '@/lib/color';
 import { dashboard } from '@/routes';
-import type { Branding } from '@/types';
+import type { Branding, RunningText } from '@/types';
 
 defineOptions({
     layout: {
@@ -40,10 +43,38 @@ const form = useForm({
     app_name: props.branding.app_name,
     primary_color: props.branding.primary_color,
     accent_color: props.branding.accent_color,
-    running_texts: [...props.branding.running_texts],
+    running_texts: props.branding.running_texts.map((line): RunningText => ({
+        ...line,
+    })),
     display_theme: props.branding.display_theme,
     logo: null as File | null,
 });
+
+// The display's running-text bar: a white bar on the light theme, and
+// black/40 over slate-950 (≈ #01040e) on the dark theme. A line set to
+// automatic (null) uses the theme's text colour.
+const MARQUEE_BG = { light: '#ffffff', dark: '#01040e' } as const;
+const MARQUEE_CUSTOM_START = { light: '#1d4ed8', dark: '#facc15' } as const;
+
+const themeName = computed(() =>
+    form.display_theme === 'dark' ? 'gelap' : 'terang',
+);
+
+/** Contrast of a custom line colour on the bar, or null when automatic. */
+function lineContrast(line: RunningText): number | null {
+    return line.color === null
+        ? null
+        : contrastRatio(line.color, MARQUEE_BG[form.display_theme]);
+}
+
+function useCustomColor(line: RunningText) {
+    line.color = MARQUEE_CUSTOM_START[form.display_theme];
+}
+
+// Blank lines are dropped on save, so the preview skips them too.
+const previewLines = computed(() =>
+    form.running_texts.filter((line) => line.text.trim() !== ''),
+);
 
 const logoPreview = ref<string | null>(props.branding.logo_url);
 const logoName = ref<string | null>(null);
@@ -73,17 +104,20 @@ function onLogoChange(event: Event) {
 }
 
 async function addRunningText() {
-    form.running_texts.push('');
+    form.running_texts.push({ text: '', color: null });
     await nextTick();
     document
         .getElementById(`running-text-${form.running_texts.length - 1}`)
         ?.focus();
 }
 
-// Laravel reports per-row errors under dotted keys like "running_texts.2".
-function runningTextError(index: number): string | undefined {
+// Laravel reports per-row errors under dotted keys like "running_texts.2.text".
+function runningTextError(
+    index: number,
+    field: 'text' | 'color',
+): string | undefined {
     return (form.errors as Record<string, string | undefined>)[
-        `running_texts.${index}`
+        `running_texts.${index}.${field}`
     ];
 }
 
@@ -109,11 +143,17 @@ function discard() {
 function submit() {
     form.post('/admin/branding', {
         forceFormData: true,
+        // Each line is {text, color}. The default "brackets" format sends
+        // running_texts[][text] + running_texts[][color], which PHP splits
+        // into separate entries; indices keep a line's fields together.
+        queryStringArrayFormat: 'indices',
         preserveScroll: true,
         onSuccess: () => {
             // The server drops blank running texts; adopt its cleaned values
             // as the new baseline so the form reads as saved.
-            form.running_texts = [...props.branding.running_texts];
+            form.running_texts = props.branding.running_texts.map((line) => ({
+                ...line,
+            }));
             form.display_theme = props.branding.display_theme;
             form.logo = null;
             form.defaults();
@@ -271,8 +311,9 @@ onUnmounted(() => {
                                     />
                                 </div>
                                 <p class="text-sm text-muted-foreground">
-                                    Header kiosk, halaman masuk, dan layar
-                                    display sebelum ada panggilan.
+                                    Panel halaman masuk, strip tiket kiosk,
+                                    label INFO, dan kartu besar display sebelum
+                                    ada panggilan.
                                 </p>
                                 <InputError
                                     :message="form.errors.primary_color"
@@ -365,13 +406,18 @@ onUnmounted(() => {
                             <h2 class="text-lg font-semibold">Teks berjalan</h2>
                             <p class="mt-1 text-sm text-muted-foreground">
                                 Ditampilkan berurutan di bagian bawah layar
-                                display. Baris kosong diabaikan.
+                                display. Setiap baris bisa diberi warna sendiri;
+                                "Otomatis" mengikuti tema display ({{
+                                    form.display_theme === 'dark'
+                                        ? 'putih di tema gelap'
+                                        : 'hitam di tema terang'
+                                }}). Baris kosong diabaikan.
                             </p>
                         </div>
 
                         <ol class="space-y-3">
                             <li
-                                v-for="(_, index) in form.running_texts"
+                                v-for="(line, index) in form.running_texts"
                                 :key="index"
                                 class="space-y-1"
                             >
@@ -383,12 +429,52 @@ onUnmounted(() => {
                                     </span>
                                     <Input
                                         :id="`running-text-${index}`"
-                                        v-model="form.running_texts[index]"
+                                        v-model="line.text"
                                         :maxlength="MAX_TEXT_LENGTH"
                                         placeholder="Contoh: Pelayanan KK hanya sampai pukul 14:00"
                                         class="flex-1"
                                         :aria-label="`Teks berjalan ${index + 1}`"
                                     />
+
+                                    <!-- Per-line colour: automatic (theme) or a custom pick. -->
+                                    <Button
+                                        v-if="line.color === null"
+                                        type="button"
+                                        variant="outline"
+                                        class="shrink-0 gap-2 px-3"
+                                        :aria-label="`Pilih warna untuk teks ${index + 1}`"
+                                        @click="useCustomColor(line)"
+                                    >
+                                        <Palette
+                                            class="size-4"
+                                            aria-hidden="true"
+                                        />
+                                        Otomatis
+                                    </Button>
+                                    <div
+                                        v-else
+                                        class="flex h-9 shrink-0 items-center gap-1.5 rounded-md border pr-1 pl-1.5"
+                                    >
+                                        <input
+                                            v-model="line.color"
+                                            type="color"
+                                            class="h-6 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
+                                            :aria-label="`Warna teks ${index + 1}`"
+                                        />
+                                        <span
+                                            class="w-16 font-mono text-xs uppercase"
+                                            >{{ line.color }}</span
+                                        >
+                                        <button
+                                            type="button"
+                                            class="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                            :aria-label="`Kembalikan warna otomatis untuk teks ${index + 1}`"
+                                            @click="line.color = null"
+                                        >
+                                            <X class="size-4" />
+                                        </button>
+                                    </div>
+
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -423,22 +509,46 @@ onUnmounted(() => {
                                         <Trash2 class="size-4" />
                                     </Button>
                                 </div>
-                                <div class="flex justify-between pl-7">
-                                    <InputError
-                                        :message="runningTextError(index)"
-                                    />
+                                <div class="flex justify-between gap-3 pl-7">
+                                    <div class="space-y-1">
+                                        <InputError
+                                            :message="
+                                                runningTextError(index, 'text')
+                                            "
+                                        />
+                                        <InputError
+                                            :message="
+                                                runningTextError(index, 'color')
+                                            "
+                                        />
+                                        <p
+                                            v-if="
+                                                (lineContrast(line) ?? 21) < 4.5
+                                            "
+                                            class="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400"
+                                        >
+                                            <TriangleAlert
+                                                class="size-3.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            Kontras hanya
+                                            {{
+                                                lineContrast(line)?.toFixed(1)
+                                            }}:1 di tema {{ themeName }}, sulit
+                                            dibaca dari jauh. Disarankan minimal
+                                            4.5:1.
+                                        </p>
+                                    </div>
                                     <span
                                         v-if="
-                                            (form.running_texts[index]
-                                                ?.length ?? 0) >
+                                            line.text.length >
                                             MAX_TEXT_LENGTH - 100
                                         "
                                         class="ml-auto text-xs text-muted-foreground tabular-nums"
                                     >
-                                        {{
-                                            form.running_texts[index]?.length ??
-                                            0
-                                        }}/{{ MAX_TEXT_LENGTH }}
+                                        {{ line.text.length }}/{{
+                                            MAX_TEXT_LENGTH
+                                        }}
                                     </span>
                                 </div>
                             </li>
@@ -469,38 +579,61 @@ onUnmounted(() => {
                     </h2>
 
                     <figure class="space-y-2">
+                        <!-- Mirrors the kiosk's floating header panel and the
+                             printed ticket, where the primary colour now lives. -->
                         <div
-                            class="overflow-hidden rounded-xl border shadow-xs"
+                            class="space-y-3 overflow-hidden rounded-xl border bg-slate-50 p-3 shadow-xs"
                         >
                             <div
-                                class="flex items-center gap-3 px-4 py-3"
-                                :style="{
-                                    backgroundColor: form.primary_color,
-                                    color: brandText,
-                                }"
+                                class="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm"
                             >
                                 <img
                                     v-if="logoPreview"
                                     :src="logoPreview"
                                     alt=""
-                                    class="h-8 w-auto"
+                                    class="h-7 w-auto shrink-0"
                                 />
-                                <span class="truncate font-bold">{{
-                                    form.app_name || 'Nama aplikasi'
-                                }}</span>
+                                <div class="min-w-0">
+                                    <p
+                                        class="truncate text-sm font-bold text-slate-900"
+                                    >
+                                        {{ form.app_name || 'Nama aplikasi' }}
+                                    </p>
+                                    <p class="text-xs text-slate-500">
+                                        Layanan antrian mandiri
+                                    </p>
+                                </div>
                                 <span
-                                    class="ml-auto text-sm font-bold tabular-nums"
+                                    class="ml-auto text-base font-bold text-slate-900 tabular-nums"
                                     >08:30</span
                                 >
                             </div>
-                            <div
-                                class="bg-slate-50 p-4 text-center text-sm font-semibold text-slate-900"
+                            <p
+                                class="text-center text-sm font-semibold text-slate-900"
                             >
                                 Silakan pilih layanan
+                            </p>
+                            <div
+                                class="mx-auto w-36 overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-sm"
+                            >
+                                <p
+                                    class="truncate px-2 py-1 text-xs font-semibold tracking-widest uppercase"
+                                    :style="{
+                                        backgroundColor: form.primary_color,
+                                        color: brandText,
+                                    }"
+                                >
+                                    {{ form.app_name || 'Nama aplikasi' }}
+                                </p>
+                                <p
+                                    class="py-2 text-2xl font-extrabold text-slate-900 tabular-nums"
+                                >
+                                    A-001
+                                </p>
                             </div>
                         </div>
                         <figcaption class="text-sm text-muted-foreground">
-                            Kiosk
+                            Kiosk · header dan tiket
                         </figcaption>
                     </figure>
 
@@ -564,12 +697,28 @@ onUnmounted(() => {
                                     Info
                                 </span>
                                 <span class="truncate px-3 py-2">
-                                    {{
-                                        form.running_texts
-                                            .filter((text) => text?.trim())
-                                            .join('  •  ') ||
-                                        'Teks berjalan akan tampil di sini'
-                                    }}
+                                    <template
+                                        v-for="(line, index) in previewLines"
+                                        :key="index"
+                                    >
+                                        <span
+                                            v-if="index > 0"
+                                            aria-hidden="true"
+                                            class="mx-2 opacity-40"
+                                            >•</span
+                                        >
+                                        <span
+                                            :style="{
+                                                color: line.color ?? undefined,
+                                            }"
+                                            >{{ line.text }}</span
+                                        >
+                                    </template>
+                                    <span
+                                        v-if="previewLines.length === 0"
+                                        class="opacity-60"
+                                        >Teks berjalan akan tampil di sini</span
+                                    >
                                 </span>
                             </div>
                         </div>

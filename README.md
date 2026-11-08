@@ -12,7 +12,7 @@ Warga mengambil nomor di **kiosk**, petugas memanggil nomor dari **operator cons
 - **Dashboard** (`/dashboard`, login) — statistik hari ini (total, menunggu, selesai, loket aktif) dan rincian per layanan.
 - **Kelola Loket** (`/admin/lokets`, login) — CRUD loket; tambah loket sebanyak yang dibutuhkan, masing-masing dengan **nama loket + nama petugas**.
 - **Kelola Layanan** (`/admin/services`, login) — ubah nama, prefix, dan warna jalur layanan (KTP/KK/Akta).
-- **Tampilan / Branding** (`/admin/branding`, login) — nama aplikasi, unggah logo, warna primer/aksen, running text (bisa lebih dari satu), serta tema layar display. Branding diterapkan ke seluruh aplikasi.
+- **Tampilan / Branding** (`/admin/branding`, login) — nama aplikasi, unggah logo, warna primer/aksen, running text (bisa lebih dari satu, dan tiap baris bisa diberi warna sendiri atau otomatis mengikuti tema), serta tema layar display. Halaman ini menampilkan pratinjau langsung kiosk dan display. Branding diterapkan ke seluruh aplikasi.
 
 ## Teknologi
 

@@ -30,6 +30,21 @@ export function relativeLuminance(
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** WCAG contrast ratio (1-21) between two hex colours, or null if either isn't hex. */
+export function contrastRatio(
+    a: string | null | undefined,
+    b: string | null | undefined,
+): number | null {
+    const la = relativeLuminance(a);
+    const lb = relativeLuminance(b);
+
+    if (la === null || lb === null) {
+        return null;
+    }
+
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 /**
  * Pick dark or white text for a background colour, whichever has the higher
  * WCAG contrast. Admins choose brand and service colours freely, so a fixed
