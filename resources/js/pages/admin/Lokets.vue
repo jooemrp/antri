@@ -22,6 +22,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { dashboard } from '@/routes';
 
 interface ServiceOption {
@@ -207,41 +215,43 @@ function submitDelete() {
                 <p v-if="lokets.length === 0" class="text-sm text-muted-foreground">
                     Belum ada loket.
                 </p>
-                <table v-else class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-muted-foreground">
-                            <th class="py-2 pr-4 font-medium">Loket</th>
-                            <th class="py-2 pr-4 font-medium">Layanan</th>
-                            <th class="py-2 pr-4 font-medium">Petugas</th>
-                            <th class="py-2 pr-4 font-medium">Status</th>
-                            <th class="py-2 pr-4 font-medium">Urutan</th>
-                            <th class="py-2 pr-4 font-medium"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="loket in lokets" :key="loket.id" class="border-b last:border-0">
-                            <td class="py-2 pr-4">{{ loket.name }}</td>
-                            <td class="py-2 pr-4">
+                <Table v-else>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Loket</TableHead>
+                            <TableHead>Layanan</TableHead>
+                            <TableHead>Petugas</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead class="text-right">Urutan</TableHead>
+                            <TableHead class="text-right"><span class="sr-only">Aksi</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-for="loket in lokets" :key="loket.id">
+                            <TableCell class="font-medium">{{ loket.name }}</TableCell>
+                            <TableCell>
                                 <Badge
                                     :style="loket.service.color ? { backgroundColor: loket.service.color, color: '#fff' } : undefined"
                                 >
                                     {{ loket.service.name }}
                                 </Badge>
-                            </td>
-                            <td class="py-2 pr-4">{{ loket.officer_name ?? '—' }}</td>
-                            <td class="py-2 pr-4">
+                            </TableCell>
+                            <TableCell :class="loket.officer_name ? undefined : 'text-muted-foreground'">{{ loket.officer_name ?? '—' }}</TableCell>
+                            <TableCell>
                                 <Badge :variant="loket.is_active ? 'default' : 'secondary'">
                                     {{ loket.is_active ? 'Aktif' : 'Nonaktif' }}
                                 </Badge>
-                            </td>
-                            <td class="py-2 pr-4">{{ loket.sort_order }}</td>
-                            <td class="flex gap-2 py-2 pr-4">
-                                <Button size="sm" variant="outline" @click="openEdit(loket)">Ubah</Button>
-                                <Button size="sm" variant="destructive" @click="confirmDelete(loket)">Hapus</Button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </TableCell>
+                            <TableCell class="text-right tabular-nums">{{ loket.sort_order }}</TableCell>
+                            <TableCell>
+                                <div class="flex justify-end gap-2">
+                                    <Button size="sm" variant="outline" @click="openEdit(loket)">Ubah</Button>
+                                    <Button size="sm" variant="destructive" @click="confirmDelete(loket)">Hapus</Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
 

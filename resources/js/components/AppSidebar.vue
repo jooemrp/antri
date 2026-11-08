@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Building2, Layers, LayoutGrid, MonitorSpeaker, Palette } from '@lucide/vue';
+import {
+    Building2,
+    Layers,
+    LayoutGrid,
+    MonitorSpeaker,
+    Palette,
+    Ticket,
+    Tv,
+} from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -17,7 +25,7 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const operationalNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -28,6 +36,9 @@ const mainNavItems: NavItem[] = [
         href: '/operator',
         icon: MonitorSpeaker,
     },
+];
+
+const adminNavItems: NavItem[] = [
     {
         title: 'Loket',
         href: '/admin/lokets',
@@ -49,12 +60,12 @@ const footerNavItems: NavItem[] = [
     {
         title: 'Kiosk',
         href: '/kiosk',
-        icon: LayoutGrid,
+        icon: Ticket,
     },
     {
         title: 'Display',
         href: '/display',
-        icon: MonitorSpeaker,
+        icon: Tv,
     },
 ];
 </script>
@@ -74,11 +85,12 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain label="Operasional" :items="operationalNavItems" />
+            <NavMain label="Administrasi" :items="adminNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <NavFooter label="Layar Publik" :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>

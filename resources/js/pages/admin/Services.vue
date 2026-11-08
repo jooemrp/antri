@@ -15,6 +15,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { dashboard } from '@/routes';
 
 interface Service {
@@ -173,40 +181,45 @@ function submitDelete() {
                 <p v-if="services.length === 0" class="text-sm text-muted-foreground">
                     Belum ada layanan.
                 </p>
-                <table v-else class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-muted-foreground">
-                            <th class="py-2 pr-4 font-medium">Nama</th>
-                            <th class="py-2 pr-4 font-medium">Prefix</th>
-                            <th class="py-2 pr-4 font-medium">Warna</th>
-                            <th class="py-2 pr-4 font-medium">Status</th>
-                            <th class="py-2 pr-4 font-medium">Urutan</th>
-                            <th class="py-2 pr-4 font-medium"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="service in services" :key="service.id" class="border-b last:border-0">
-                            <td class="py-2 pr-4">{{ service.name }}</td>
-                            <td class="py-2 pr-4">{{ service.prefix }}</td>
-                            <td class="py-2 pr-4">
-                                <span
-                                    class="inline-block size-4 rounded-full border"
-                                    :style="{ backgroundColor: service.color ?? 'transparent' }"
-                                />
-                            </td>
-                            <td class="py-2 pr-4">
+                <Table v-else>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nama</TableHead>
+                            <TableHead>Prefix</TableHead>
+                            <TableHead>Warna</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead class="text-right">Urutan</TableHead>
+                            <TableHead class="text-right"><span class="sr-only">Aksi</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-for="service in services" :key="service.id">
+                            <TableCell class="font-medium">{{ service.name }}</TableCell>
+                            <TableCell class="font-mono font-semibold">{{ service.prefix }}</TableCell>
+                            <TableCell>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="inline-block size-5 rounded-full border shadow-xs"
+                                        :style="{ backgroundColor: service.color ?? 'transparent' }"
+                                    />
+                                    <span class="font-mono text-xs text-muted-foreground uppercase">{{ service.color ?? '—' }}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
                                 <Badge :variant="service.is_active ? 'default' : 'secondary'">
                                     {{ service.is_active ? 'Aktif' : 'Nonaktif' }}
                                 </Badge>
-                            </td>
-                            <td class="py-2 pr-4">{{ service.sort_order }}</td>
-                            <td class="flex gap-2 py-2 pr-4">
-                                <Button size="sm" variant="outline" @click="openEdit(service)">Ubah</Button>
-                                <Button size="sm" variant="destructive" @click="confirmDelete(service)">Hapus</Button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </TableCell>
+                            <TableCell class="text-right tabular-nums">{{ service.sort_order }}</TableCell>
+                            <TableCell>
+                                <div class="flex justify-end gap-2">
+                                    <Button size="sm" variant="outline" @click="openEdit(service)">Ubah</Button>
+                                    <Button size="sm" variant="destructive" @click="confirmDelete(service)">Hapus</Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
 

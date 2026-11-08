@@ -3,6 +3,14 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { dashboard } from '@/routes';
 
 interface ServiceStat {
@@ -97,35 +105,37 @@ defineProps<{
                 >
                     Belum ada layanan.
                 </p>
-                <table v-else class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-muted-foreground">
-                            <th class="py-2 pr-4 font-medium">Layanan</th>
-                            <th class="py-2 pr-4 font-medium">Total</th>
-                            <th class="py-2 pr-4 font-medium">Menunggu</th>
-                            <th class="py-2 pr-4 font-medium">Selesai</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
+                <Table v-else>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Layanan</TableHead>
+                            <TableHead class="text-right">Total</TableHead>
+                            <TableHead class="text-right">Menunggu</TableHead>
+                            <TableHead class="text-right">Selesai</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow
                             v-for="service in stats.per_service"
                             :key="service.id"
-                            class="border-b last:border-0"
                         >
-                            <td class="py-2 pr-4">
-                                <Badge
-                                    :style="service.color ? { backgroundColor: service.color, color: '#fff' } : undefined"
-                                >
-                                    {{ service.prefix }}
-                                </Badge>
-                                {{ service.name }}
-                            </td>
-                            <td class="py-2 pr-4">{{ service.total }}</td>
-                            <td class="py-2 pr-4">{{ service.waiting }}</td>
-                            <td class="py-2 pr-4">{{ service.done }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                            <TableCell>
+                                <div class="flex items-center gap-3">
+                                    <Badge
+                                        class="min-w-9 justify-center font-mono"
+                                        :style="service.color ? { backgroundColor: service.color, color: '#fff' } : undefined"
+                                    >
+                                        {{ service.prefix }}
+                                    </Badge>
+                                    <span class="font-medium">{{ service.name }}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell class="text-right font-semibold tabular-nums">{{ service.total }}</TableCell>
+                            <TableCell class="text-right tabular-nums">{{ service.waiting }}</TableCell>
+                            <TableCell class="text-right tabular-nums">{{ service.done }}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
 
