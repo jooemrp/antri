@@ -24,7 +24,9 @@ class Branding
         return [
             'app_name' => Setting::get('app_name', config('app.name')),
             'logo_path' => $logoPath,
-            'logo_url' => $logoPath ? Storage::disk('public')->url($logoPath) : null,
+            // Path only: the disk URL is built from APP_URL, which breaks the
+            // image when the app is opened on another host (IP, Expose, localhost).
+            'logo_url' => $logoPath ? parse_url(Storage::disk('public')->url($logoPath), PHP_URL_PATH) : null,
             'primary_color' => Setting::get('primary_color', '#2563eb'),
             'accent_color' => Setting::get('accent_color', '#16a34a'),
             'running_texts' => self::runningTexts(),

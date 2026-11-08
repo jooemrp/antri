@@ -45,6 +45,7 @@ let isFetching = false;
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 let clockTimer: ReturnType<typeof setInterval> | undefined;
 let lastAnnouncedKey: string | null = null;
+let hasLoadedState = false;
 let audioContext: AudioContext | null = null;
 
 const clockLabel = computed(() =>
@@ -196,16 +197,36 @@ function announce(call: Latest) {
     speak(text);
 }
 
+function createAudioContext(): AudioContext {
+    const AudioContextClass =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+
+    return new AudioContextClass();
+}
+
+// A browser that allows autoplay (the Mini PC starts Chrome with
+// --autoplay-policy=no-user-gesture-required) starts the context running,
+// so the "Aktifkan Suara" tap is skipped. Otherwise the overlay stays.
+function tryEnableSoundWithoutTap() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    audioContext = createAudioContext();
+
+    if (audioContext.state === 'running') {
+        soundEnabled.value = true;
+    }
+}
+
 function enableSound() {
     if (typeof window === 'undefined') {
         return;
     }
 
-    const AudioContextClass =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
-    audioContext = new AudioContextClass();
+    audioContext ??= createAudioContext();
 
     if (audioContext.state === 'suspended') {
         audioContext.resume();
@@ -244,11 +265,15 @@ async function fetchState() {
             if (key !== lastAnnouncedKey) {
                 lastAnnouncedKey = key;
 
-                if (soundEnabled.value) {
+                // The first load only records what is already on screen, so
+                // opening or reloading the display never repeats an old call.
+                if (soundEnabled.value && hasLoadedState) {
                     announce(latest.value);
                 }
             }
         }
+
+        hasLoadedState = true;
     } catch {
         // Network or parsing failure — keep the last-known state on screen.
     } finally {
@@ -261,6 +286,7 @@ onMounted(() => {
     applyHtmlDarkClass();
     systemThemeQuery?.addEventListener('change', applyHtmlDarkClass);
 
+    tryEnableSoundWithoutTap();
     fetchState();
     pollTimer = setInterval(fetchState, 3000);
     clockTimer = setInterval(() => {

@@ -4,6 +4,7 @@ use App\Models\Loket;
 use App\Models\Service;
 use App\Models\Ticket;
 use App\Services\QueueService;
+use Carbon\CarbonImmutable;
 
 beforeEach(function () {
     $this->queue = new QueueService;
@@ -90,4 +91,19 @@ test('finish sets the ticket status to done with finished_at', function () {
 
     expect($finished->status)->toBe(Ticket::STATUS_DONE);
     expect($finished->finished_at)->not->toBeNull();
+});
+
+test('a ticket issued before 07:00 WIB is still callable after 07:00 the same local day', function () {
+    $service = Service::factory()->create(['prefix' => 'A']);
+    $loket = Loket::factory()->for($service)->create();
+
+    // 06:50 WIB is 23:50 UTC the previous day; 07:10 WIB is 00:10 UTC.
+    $this->travelTo(CarbonImmutable::parse('2026-11-09 06:50', 'Asia/Jakarta'));
+    $ticket = $this->queue->issue($service);
+
+    $this->travelTo(CarbonImmutable::parse('2026-11-09 07:10', 'Asia/Jakarta'));
+    $called = $this->queue->callNext($loket);
+
+    expect($ticket->issued_date->toDateString())->toBe('2026-11-09');
+    expect($called?->id)->toBe($ticket->id);
 });
