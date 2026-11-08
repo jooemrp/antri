@@ -35,38 +35,50 @@ class Branding
     /**
      * The running texts, decoded from the JSON array stored under `running_text`.
      *
-     * Installs created before multi-text support hold a plain string under this
-     * key; that value is returned as a single-entry list.
+     * Each line carries its own colour; a null colour means automatic (the
+     * display's theme colour). Older installs stored a plain string, or a list
+     * of plain strings; both resolve as lines with automatic colour.
      *
-     * @return list<string>
+     * @return list<array{text: string, color: string|null}>
      */
     protected static function runningTexts(): array
     {
         $stored = Setting::get('running_text');
 
         if ($stored === null || $stored === '') {
-            return [self::DEFAULT_RUNNING_TEXT];
+            return [['text' => self::DEFAULT_RUNNING_TEXT, 'color' => null]];
         }
 
         $decoded = json_decode((string) $stored, true);
 
         if (! is_array($decoded)) {
-            return [(string) $stored];
+            return [['text' => (string) $stored, 'color' => null]];
         }
 
         return self::clean($decoded);
     }
 
     /**
-     * Trim entries and drop the blank ones, reindexing the result.
+     * Normalise lines to {text, color}, trim text, and drop blank lines.
      *
-     * @param  array<int|string, mixed>  $texts
-     * @return list<string>
+     * Accepts legacy plain-string entries as well as {text, color} arrays; a
+     * colour that isn't a 6-digit hex falls back to automatic (null).
+     *
+     * @param  array<int|string, mixed>  $lines
+     * @return list<array{text: string, color: string|null}>
      */
-    public static function clean(array $texts): array
+    public static function clean(array $lines): array
     {
-        $trimmed = array_map(fn (mixed $text): string => trim((string) $text), $texts);
+        $normalised = array_map(function (mixed $line): array {
+            $text = is_array($line) ? ($line['text'] ?? '') : $line;
+            $color = is_array($line) ? ($line['color'] ?? null) : null;
 
-        return array_values(array_filter($trimmed, fn (string $text): bool => $text !== ''));
+            return [
+                'text' => trim((string) $text),
+                'color' => is_string($color) && preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : null,
+            ];
+        }, $lines);
+
+        return array_values(array_filter($normalised, fn (array $line): bool => $line['text'] !== ''));
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Loket;
 use App\Models\Service;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -14,6 +15,17 @@ test('services index shows the services page', function () {
 
     $response->assertOk();
     $response->assertInertia(fn (Assert $page) => $page->component('admin/Services'));
+});
+
+test('services index includes loket and ticket counts for the delete warning', function () {
+    $service = Service::factory()->create();
+    Loket::factory()->count(2)->create(['service_id' => $service->id]);
+
+    $response = $this->get(route('admin.services.index'));
+
+    $response->assertInertia(fn (Assert $page) => $page
+        ->where('services.0.lokets_count', 2)
+        ->where('services.0.tickets_count', 0));
 });
 
 test('a service can be created', function () {

@@ -17,7 +17,7 @@ class ServiceController extends Controller
     public function index(): Response
     {
         return Inertia::render('admin/Services', [
-            'services' => Service::query()->orderBy('sort_order')->get(),
+            'services' => Service::query()->withCount(['lokets', 'tickets'])->orderBy('sort_order')->get(),
         ]);
     }
 

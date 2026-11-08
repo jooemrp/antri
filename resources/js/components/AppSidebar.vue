@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Building2, Layers, LayoutGrid, MonitorSpeaker, Palette } from '@lucide/vue';
+import {
+    Building2,
+    Layers,
+    LayoutGrid,
+    MonitorSpeaker,
+    Palette,
+    Ticket,
+    Tv,
+} from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -10,14 +18,11 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const operationalNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -28,6 +33,9 @@ const mainNavItems: NavItem[] = [
         href: '/operator',
         icon: MonitorSpeaker,
     },
+];
+
+const adminNavItems: NavItem[] = [
     {
         title: 'Loket',
         href: '/admin/lokets',
@@ -49,12 +57,12 @@ const footerNavItems: NavItem[] = [
     {
         title: 'Kiosk',
         href: '/kiosk',
-        icon: LayoutGrid,
+        icon: Ticket,
     },
     {
         title: 'Display',
         href: '/display',
-        icon: MonitorSpeaker,
+        icon: Tv,
     },
 ];
 </script>
@@ -62,23 +70,21 @@ const footerNavItems: NavItem[] = [
 <template>
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
-                            <AppLogo />
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
+            <Link
+                :href="dashboard()"
+                class="flex flex-col items-center gap-3 rounded-lg px-2 pt-5 pb-3 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-[padding] group-data-[collapsible=icon]:p-0 hover:bg-sidebar-accent focus-visible:ring-2"
+            >
+                <AppLogo stacked />
+            </Link>
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain label="Operasional" :items="operationalNavItems" />
+            <NavMain label="Administrasi" :items="adminNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <NavFooter label="Layar Publik" :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
