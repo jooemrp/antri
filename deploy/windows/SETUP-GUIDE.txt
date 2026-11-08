@@ -12,7 +12,6 @@ WHAT YOU END UP WITH
     - opens http://antrian/operator in a browser and calls numbers
 
   After setup, the daily routine is: turn everything on. That's it.
-  (One exception for now: see "DAILY ROUTINE" at the end.)
 
 FIXED FOLDERS (the scripts assume these - keep them exactly like this)
   C:\antrian   the app (this git repository)
@@ -296,7 +295,10 @@ Allow about 1.5 - 2 hours for the first setup. Follow the steps in order.
         [ ] Windows logs in by itself
         [ ] the TV shows the display page, full screen
         [ ] the kiosk shows the ticket page, full screen
+        [ ] the TV does NOT show an "Aktifkan Suara" box
         [ ] touching a service on the kiosk prints a ticket, with no print dialog
+        [ ] after STEP 10/11: calling that ticket from the operator PC plays
+            the chime and the voice on the TV, without anyone clicking
         [ ] on another PC, http://antrian/ opens the login page
             (if not, try http://<the IP from 1.3>/)
 
@@ -344,9 +346,8 @@ Allow about 1.5 - 2 hours for the first setup. Follow the steps in order.
            Operator double-clicks "Antrian Operator".
            Ticket numbers restart from 001 every day automatically.
 
- ONE MANUAL STEP (for now): browsers only allow sound after a click, so
- after the Mini PC starts, click "Aktifkan Suara" on the TV screen once
- with a mouse. (This can be automated later with a small code change.)
+ The TV turns its sound on by itself. If it ever shows an "Aktifkan Suara"
+ box, click it once (or see TROUBLESHOOTING > No voice).
 
  Evening:  press the Mini PC's power button once (Windows shuts down
            properly) and turn off the TV.
@@ -411,7 +412,9 @@ Allow about 1.5 - 2 hours for the first setup. Follow the steps in order.
    Check that the thermal printer is the Windows default printer.
 
  No voice, only the chime (or nothing)
-   - Click "Aktifkan Suara" on the TV once.
+   - If the TV shows an "Aktifkan Suara" box, Chrome was started without
+     the sound flag. Close ALL Chrome windows on the Mini PC and run
+     start-screens.bat again (or just click the box for today).
    - Check the Windows sound output is the TV (step 1.5).
    - Check the Indonesian voice is installed (step 1.6), then restart.
 
