@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
+    ArrowLeftRight,
     Check,
     ChevronRight,
     Megaphone,
@@ -10,6 +11,7 @@ import {
 } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -396,20 +398,45 @@ onUnmounted(() => {
                     <WifiOff class="size-4" aria-hidden="true" />
                     Koneksi terputus — mencoba lagi
                 </p>
-                <Select v-model="selectedLoketId">
-                    <SelectTrigger class="w-56" aria-label="Ganti loket">
-                        <SelectValue placeholder="Ganti loket" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem
-                            v-for="loket in lokets"
-                            :key="loket.id"
-                            :value="String(loket.id)"
+                <!-- Labelled and full-size so it reads as "change desk here". -->
+                <div class="grid gap-1.5">
+                    <Label
+                        for="switch-loket"
+                        class="text-sm font-medium text-muted-foreground"
+                    >
+                        Ganti loket
+                    </Label>
+                    <Select v-model="selectedLoketId">
+                        <SelectTrigger
+                            id="switch-loket"
+                            class="w-72 gap-3 border-2 border-foreground/15 px-4 text-base font-semibold transition-colors hover:border-foreground/40 data-[size=default]:h-12 [&>svg:last-child]:size-5 [&>svg:last-child]:opacity-70"
                         >
-                            {{ loket.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
+                            <ArrowLeftRight
+                                class="size-5 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            <SelectValue placeholder="Pilih loket" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                v-for="loket in lokets"
+                                :key="loket.id"
+                                :value="String(loket.id)"
+                                class="py-2.5 text-base"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="size-2.5 shrink-0 rounded-full"
+                                    :style="{
+                                        backgroundColor:
+                                            loket.service.color ?? '#64748b',
+                                    }"
+                                />
+                                {{ loket.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </header>
 
@@ -474,39 +501,65 @@ onUnmounted(() => {
                 </div>
 
                 <div class="space-y-3">
-                    <Button
-                        class="h-auto w-full justify-between gap-4 px-6 py-5 text-left"
+                    <!-- The primary action: service-coloured so it is the one
+                         saturated thing on the page, with real button feedback.
+                         It pulses only when the desk is idle and people wait. -->
+                    <button
+                        type="button"
+                        class="group relative flex w-full items-center justify-center gap-5 rounded-2xl px-6 py-6 shadow-lg transition duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110 focus-visible:ring-4 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none active:translate-y-0 active:scale-[0.99] active:shadow-md disabled:pointer-events-none disabled:bg-muted! disabled:text-muted-foreground! disabled:shadow-none motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+                        :class="{
+                            'call-invite':
+                                canCallNext && !current && busy === null,
+                        }"
+                        :style="{
+                            backgroundColor: serviceColor,
+                            color: readableTextColor(serviceColor),
+                            '--invite': serviceColor,
+                        }"
                         :disabled="!canCallNext || busy !== null"
                         @click="callNext"
                     >
-                        <span class="flex items-center gap-4">
-                            <Spinner v-if="busy === 'next'" class="size-6" />
-                            <Megaphone
-                                v-else
-                                class="size-6"
-                                aria-hidden="true"
-                            />
-                            <span>
-                                <span class="block text-xl font-bold">
+                        <Spinner v-if="busy === 'next'" class="size-8" />
+                        <Megaphone
+                            v-else
+                            class="size-8 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span class="text-left">
+                            <span class="flex flex-wrap items-center gap-3">
+                                <span class="text-2xl font-extrabold">
                                     {{
                                         canCallNext
-                                            ? `Panggil Berikutnya · ${nextTicket?.code ?? ''}`
+                                            ? 'Panggil Berikutnya'
                                             : 'Tidak ada antrian menunggu'
                                     }}
                                 </span>
                                 <span
-                                    v-if="current && canCallNext"
-                                    class="block text-sm font-normal opacity-75"
+                                    v-if="canCallNext && nextTicket"
+                                    class="rounded-lg bg-current/15 px-3 py-0.5 text-2xl font-extrabold tabular-nums"
                                 >
-                                    {{ current.code }} otomatis selesai
+                                    {{ nextTicket.code }}
                                 </span>
                             </span>
+                            <span
+                                v-if="canCallNext"
+                                class="mt-1 block text-sm font-medium opacity-85"
+                            >
+                                <template v-if="current"
+                                    >{{ current.code }} otomatis selesai · </template
+                                >Klik atau tekan
+                                <kbd
+                                    class="rounded border border-current/40 px-1.5 font-mono"
+                                    >B</kbd
+                                >
+                            </span>
                         </span>
-                        <kbd
-                            class="rounded-md border border-current/30 px-2 py-0.5 font-mono text-sm opacity-75"
-                            >B</kbd
-                        >
-                    </Button>
+                        <ChevronRight
+                            v-if="canCallNext"
+                            class="ml-auto size-8 shrink-0 transition-transform group-hover:translate-x-1 motion-reduce:transition-none"
+                            aria-hidden="true"
+                        />
+                    </button>
 
                     <div class="grid grid-cols-3 gap-3">
                         <Button
@@ -650,3 +703,30 @@ onUnmounted(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Idle desk with people waiting: a soft ring invites the call. */
+.call-invite {
+    animation: call-invite 1.8s ease-out infinite;
+}
+
+@keyframes call-invite {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--invite) 55%, transparent);
+    }
+
+    70% {
+        box-shadow: 0 0 0 16px color-mix(in srgb, var(--invite) 0%, transparent);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .call-invite {
+        animation: none;
+    }
+}
+</style>
