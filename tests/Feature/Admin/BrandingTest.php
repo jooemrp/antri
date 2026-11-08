@@ -126,6 +126,13 @@ test('an empty stored array means no running text', function () {
     expect(Branding::resolve()['running_texts'])->toBe([]);
 });
 
+test('the logo url is root-relative so it loads from any host the app is opened on', function () {
+    config(['filesystems.disks.public.url' => 'http://antrian-app.test/storage']);
+    Setting::set('logo_path', 'branding/logo.png');
+
+    expect(Branding::resolve()['logo_url'])->toBe('/storage/branding/logo.png');
+});
+
 test('display theme defaults to dark', function () {
     expect(Branding::resolve()['display_theme'])->toBe('dark');
 });
