@@ -49,9 +49,12 @@ const stateById = computed(
 
 const now = ref(new Date());
 
-const dateLabel = computed(() =>
+const weekdayLabel = computed(() =>
+    now.value.toLocaleDateString('id-ID', { weekday: 'long' }),
+);
+
+const dayLabel = computed(() =>
     now.value.toLocaleDateString('id-ID', {
-        weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -132,13 +135,17 @@ function issue(service: KioskService) {
 
     issuingId.value = service.id;
 
-    router.post(`/kiosk/${service.id}`, {}, {
-        preserveScroll: true,
-        onSuccess: () => fetchState(),
-        onFinish: () => {
-            issuingId.value = null;
+    router.post(
+        `/kiosk/${service.id}`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => fetchState(),
+            onFinish: () => {
+                issuingId.value = null;
+            },
         },
-    });
+    );
 }
 
 function reset() {
@@ -154,28 +161,57 @@ function print() {
     <Head title="Kiosk" />
 
     <div class="flex min-h-dvh flex-col bg-slate-50 dark:bg-slate-950">
-        <header
-            class="flex items-center justify-between gap-6 px-8 py-5 shadow-sm print:hidden"
-            :style="{ backgroundColor: branding.primary_color, color: brandText }"
-        >
-            <div class="flex min-w-0 items-center gap-4">
-                <img
-                    v-if="branding.logo_url"
-                    :src="branding.logo_url"
-                    :alt="branding.app_name"
-                    class="h-14 w-auto"
-                />
-                <h1 class="truncate text-2xl font-bold">
-                    {{ branding.app_name }}
-                </h1>
-            </div>
-            <div class="shrink-0 text-right">
-                <p class="text-3xl font-bold tabular-nums">{{ clockLabel }}</p>
-                <p class="text-base opacity-80">{{ dateLabel }}</p>
+        <!-- Floating header aligned to the content column, so header and
+             service tiles read as one composition; the logo carries the brand. -->
+        <header class="mx-auto mt-6 w-full max-w-5xl px-6 print:hidden">
+            <div
+                class="flex items-center justify-between gap-6 rounded-3xl border border-slate-200/80 bg-white/80 px-6 py-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80"
+            >
+                <div class="flex min-w-0 items-center gap-4">
+                    <img
+                        v-if="branding.logo_url"
+                        :src="branding.logo_url"
+                        alt=""
+                        class="h-14 w-auto shrink-0"
+                    />
+                    <div class="min-w-0">
+                        <h1
+                            class="truncate text-2xl font-bold text-slate-900 dark:text-white"
+                        >
+                            {{ branding.app_name }}
+                        </h1>
+                        <p class="text-base text-slate-500 dark:text-slate-400">
+                            Layanan antrian mandiri
+                        </p>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-5">
+                    <p class="hidden text-right leading-tight sm:block">
+                        <span
+                            class="block text-base text-slate-500 dark:text-slate-400"
+                            >{{ weekdayLabel }}</span
+                        >
+                        <span
+                            class="block text-base font-semibold text-slate-700 dark:text-slate-200"
+                            >{{ dayLabel }}</span
+                        >
+                    </p>
+                    <span
+                        aria-hidden="true"
+                        class="hidden h-10 w-px bg-slate-200 sm:block dark:bg-slate-700"
+                    />
+                    <p
+                        class="text-4xl font-bold tracking-tight text-slate-900 tabular-nums dark:text-white"
+                    >
+                        {{ clockLabel }}
+                    </p>
+                </div>
             </div>
         </header>
 
-        <main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-12 print:hidden">
+        <main
+            class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 pt-10 pb-12 print:hidden"
+        >
             <div class="text-center">
                 <h2 class="text-4xl font-bold text-slate-900 dark:text-white">
                     Silakan pilih layanan
@@ -199,7 +235,10 @@ function print() {
                     type="button"
                     :disabled="issuingId !== null"
                     class="group flex flex-col overflow-hidden rounded-3xl border-2 border-slate-200 bg-white text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none active:translate-y-0 active:scale-[0.99] disabled:cursor-wait motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 dark:border-slate-800 dark:bg-slate-900 dark:focus-visible:ring-white dark:focus-visible:ring-offset-slate-950"
-                    :class="{ 'opacity-60': issuingId !== null && issuingId !== service.id }"
+                    :class="{
+                        'opacity-60':
+                            issuingId !== null && issuingId !== service.id,
+                    }"
                     @click="issue(service)"
                 >
                     <span class="flex flex-1 items-center gap-6 p-7">
@@ -213,35 +252,58 @@ function print() {
                             {{ service.prefix }}
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-3xl leading-tight font-bold text-slate-900 dark:text-white">
+                            <span
+                                class="block text-3xl leading-tight font-bold text-slate-900 dark:text-white"
+                            >
                                 {{ service.name }}
                             </span>
-                            <span class="mt-1 block text-lg text-slate-500 dark:text-slate-400">
+                            <span
+                                class="mt-1 block text-lg text-slate-500 dark:text-slate-400"
+                            >
                                 Ambil nomor antrian
                             </span>
                         </span>
-                        <Spinner v-if="issuingId === service.id" class="size-8 text-slate-400" />
+                        <Spinner
+                            v-if="issuingId === service.id"
+                            class="size-8 text-slate-400"
+                        />
                         <ChevronRight
                             v-else
                             class="size-8 shrink-0 text-slate-400 transition group-hover:translate-x-1 motion-reduce:transition-none"
                             aria-hidden="true"
                         />
                     </span>
-                    <span class="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 bg-slate-50 dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-950/50">
+                    <span
+                        class="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 bg-slate-50 dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-950/50"
+                    >
                         <span class="block px-7 py-4">
-                            <span class="block text-sm font-medium text-slate-500 dark:text-slate-400">
+                            <span
+                                class="block text-sm font-medium text-slate-500 dark:text-slate-400"
+                            >
                                 Antrian saat ini
                             </span>
-                            <span class="block text-2xl font-bold text-slate-900 tabular-nums dark:text-white">
-                                {{ stateById.get(service.id)?.last_called ?? '—' }}
+                            <span
+                                class="block text-2xl font-bold text-slate-900 tabular-nums dark:text-white"
+                            >
+                                {{
+                                    stateById.get(service.id)?.last_called ??
+                                    '—'
+                                }}
                             </span>
                         </span>
                         <span class="block px-7 py-4">
-                            <span class="block text-sm font-medium text-slate-500 dark:text-slate-400">
+                            <span
+                                class="block text-sm font-medium text-slate-500 dark:text-slate-400"
+                            >
                                 Terakhir diambil
                             </span>
-                            <span class="block text-2xl font-bold text-slate-900 tabular-nums dark:text-white">
-                                {{ stateById.get(service.id)?.last_issued ?? '—' }}
+                            <span
+                                class="block text-2xl font-bold text-slate-900 tabular-nums dark:text-white"
+                            >
+                                {{
+                                    stateById.get(service.id)?.last_issued ??
+                                    '—'
+                                }}
                             </span>
                         </span>
                     </span>
@@ -256,41 +318,71 @@ function print() {
             aria-labelledby="ticket-title"
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm print:bg-transparent print:backdrop-blur-none"
         >
-            <div class="ticket-print w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
+            <div
+                class="ticket-print w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900"
+            >
                 <p
                     class="px-8 py-4 text-center text-base font-semibold tracking-widest uppercase"
-                    :style="{ backgroundColor: branding.primary_color, color: brandText }"
+                    :style="{
+                        backgroundColor: branding.primary_color,
+                        color: brandText,
+                    }"
                 >
                     {{ branding.app_name }}
                 </p>
 
-                <div class="flex flex-col items-center px-8 pt-8 pb-6 text-center">
-                    <p id="ticket-title" class="text-lg font-medium text-slate-500 dark:text-slate-400">
+                <div
+                    class="flex flex-col items-center px-8 pt-8 pb-6 text-center"
+                >
+                    <p
+                        id="ticket-title"
+                        class="text-lg font-medium text-slate-500 dark:text-slate-400"
+                    >
                         Nomor Antrian Anda
                     </p>
-                    <p class="mt-2 text-8xl font-extrabold tracking-wide text-slate-900 tabular-nums dark:text-white">
+                    <p
+                        class="mt-2 text-8xl font-extrabold tracking-wide text-slate-900 tabular-nums dark:text-white"
+                    >
                         {{ issuedTicket.code }}
                     </p>
-                    <p class="mt-4 text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                    <p
+                        class="mt-4 text-2xl font-semibold text-slate-800 dark:text-slate-100"
+                    >
                         {{ issuedTicket.service_name }}
                     </p>
-                    <p class="mt-1 text-base text-slate-500 dark:text-slate-400">
+                    <p
+                        class="mt-1 text-base text-slate-500 dark:text-slate-400"
+                    >
                         {{ issuedAtLabel }}
                     </p>
                 </div>
 
-                <div aria-hidden="true" class="mx-8 border-t-2 border-dashed border-slate-300 dark:border-slate-700" />
+                <div
+                    aria-hidden="true"
+                    class="mx-8 border-t-2 border-dashed border-slate-300 dark:border-slate-700"
+                />
 
-                <p class="px-8 py-6 text-center text-lg text-slate-700 dark:text-slate-200">
+                <p
+                    class="px-8 py-6 text-center text-lg text-slate-700 dark:text-slate-200"
+                >
                     Silakan menunggu nomor Anda dipanggil
                 </p>
 
                 <div class="flex gap-3 px-8 pb-8 print:hidden">
-                    <Button class="h-14 flex-1 text-lg" size="lg" @click="print">
+                    <Button
+                        class="h-14 flex-1 text-lg"
+                        size="lg"
+                        @click="print"
+                    >
                         <Printer class="size-5" aria-hidden="true" />
                         Cetak
                     </Button>
-                    <Button class="h-14 flex-1 text-lg" size="lg" variant="outline" @click="reset">
+                    <Button
+                        class="h-14 flex-1 text-lg"
+                        size="lg"
+                        variant="outline"
+                        @click="reset"
+                    >
                         <Check class="size-5" aria-hidden="true" />
                         Selesai
                     </Button>
