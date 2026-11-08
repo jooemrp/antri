@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2 } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -22,6 +21,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -30,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { readableTextColor } from '@/lib/color';
 import { dashboard } from '@/routes';
 
 interface ServiceOption {
@@ -56,46 +58,50 @@ defineOptions({
     },
 });
 
-defineProps<{
+const props = defineProps<{
     lokets: Loket[];
     services: ServiceOption[];
 }>();
 
-const page = usePage();
-const errors = computed(() => page.props.errors);
+// --- Filter by service -------------------------------------------------
 
-const createForm = reactive({
-    service_id: '',
-    name: '',
-    officer_name: '',
-    is_active: true,
-    sort_order: 0,
-});
+const filter = ref<number | 'all'>('all');
 
-function submitCreate() {
-    if (!createForm.service_id) {
-        return;
+const countByService = computed(() => {
+    const counts = new Map<number, number>();
+
+    for (const loket of props.lokets) {
+        counts.set(loket.service_id, (counts.get(loket.service_id) ?? 0) + 1);
     }
 
-    router.post(
-        '/admin/lokets',
-        { ...createForm, service_id: Number(createForm.service_id) },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                createForm.service_id = '';
-                createForm.name = '';
-                createForm.officer_name = '';
-                createForm.is_active = true;
-                createForm.sort_order = 0;
-            },
-        },
-    );
+    return counts;
+});
+
+const visibleLokets = computed(() =>
+    filter.value === 'all'
+        ? props.lokets
+        : props.lokets.filter((loket) => loket.service_id === filter.value),
+);
+
+const activeCount = computed(
+    () => props.lokets.filter((loket) => loket.is_active).length,
+);
+
+function badgeStyle(color: string | null) {
+    const background = color ?? '#64748b';
+
+    return {
+        backgroundColor: background,
+        color: readableTextColor(background),
+    };
 }
 
-const editOpen = ref(false);
-const editForm = reactive({
-    id: 0,
+// --- Create / edit (one dialog, scoped errors) -------------------------
+
+const formOpen = ref(false);
+const editing = ref<Loket | null>(null);
+
+const form = useForm({
     service_id: '',
     name: '',
     officer_name: '',
@@ -103,53 +109,107 @@ const editForm = reactive({
     sort_order: 0,
 });
 
-function openEdit(loket: Loket) {
-    editForm.id = loket.id;
-    editForm.service_id = String(loket.service_id);
-    editForm.name = loket.name;
-    editForm.officer_name = loket.officer_name ?? '';
-    editForm.is_active = loket.is_active;
-    editForm.sort_order = loket.sort_order;
-    editOpen.value = true;
+function openCreate() {
+    editing.value = null;
+    form.reset();
+    form.clearErrors();
+    // Pre-fill from context: the filtered service, next sort position.
+    form.service_id =
+        filter.value !== 'all'
+            ? String(filter.value)
+            : String(props.services[0]?.id ?? '');
+    form.sort_order =
+        props.lokets.reduce(
+            (max, loket) => Math.max(max, loket.sort_order),
+            0,
+        ) + 1;
+    formOpen.value = true;
 }
 
-function submitEdit() {
+function openEdit(loket: Loket) {
+    editing.value = loket;
+    form.clearErrors();
+    form.service_id = String(loket.service_id);
+    form.name = loket.name;
+    form.officer_name = loket.officer_name ?? '';
+    form.is_active = loket.is_active;
+    form.sort_order = loket.sort_order;
+    formOpen.value = true;
+}
+
+function submit() {
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            formOpen.value = false;
+        },
+    };
+
+    form.transform((data) => ({
+        ...data,
+        service_id: Number(data.service_id),
+    }));
+
+    if (editing.value) {
+        form.patch(`/admin/lokets/${editing.value.id}`, options);
+    } else {
+        form.post('/admin/lokets', options);
+    }
+}
+
+// --- Inline active toggle ----------------------------------------------
+
+const togglingId = ref<number | null>(null);
+
+function setActive(loket: Loket, isActive: boolean, onDone?: () => void) {
+    togglingId.value = loket.id;
+
     router.patch(
-        `/admin/lokets/${editForm.id}`,
+        `/admin/lokets/${loket.id}`,
         {
-            service_id: Number(editForm.service_id),
-            name: editForm.name,
-            officer_name: editForm.officer_name,
-            is_active: editForm.is_active,
-            sort_order: editForm.sort_order,
+            service_id: loket.service_id,
+            name: loket.name,
+            officer_name: loket.officer_name,
+            is_active: isActive,
+            sort_order: loket.sort_order,
         },
         {
             preserveScroll: true,
-            onSuccess: () => {
-                editOpen.value = false;
+            onSuccess: () => onDone?.(),
+            onFinish: () => {
+                togglingId.value = null;
             },
         },
     );
 }
 
+// --- Delete --------------------------------------------------------------
+
 const deleteOpen = ref(false);
-const deletingLoket = ref<Loket | null>(null);
+const deleting = ref<Loket | null>(null);
+const deleteProcessing = ref(false);
 
 function confirmDelete(loket: Loket) {
-    deletingLoket.value = loket;
+    deleting.value = loket;
     deleteOpen.value = true;
 }
 
+function closeDelete() {
+    deleteOpen.value = false;
+}
+
 function submitDelete() {
-    if (!deletingLoket.value) {
+    if (!deleting.value) {
         return;
     }
 
-    router.delete(`/admin/lokets/${deletingLoket.value.id}`, {
+    deleteProcessing.value = true;
+
+    router.delete(`/admin/lokets/${deleting.value.id}`, {
         preserveScroll: true,
-        onSuccess: () => {
-            deleteOpen.value = false;
-            deletingLoket.value = null;
+        onSuccess: closeDelete,
+        onFinish: () => {
+            deleteProcessing.value = false;
         },
     });
 }
@@ -158,114 +218,177 @@ function submitDelete() {
 <template>
     <Head title="Loket" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <Card>
-            <CardHeader>
-                <CardTitle>Tambah Loket</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <form class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" @submit.prevent="submitCreate">
-                    <div class="grid gap-2">
-                        <Label for="create-service">Layanan</Label>
-                        <Select v-model="createForm.service_id">
-                            <SelectTrigger id="create-service" class="w-full">
-                                <SelectValue placeholder="Pilih layanan..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="service in services"
-                                    :key="service.id"
-                                    :value="String(service.id)"
-                                >
-                                    {{ service.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <InputError :message="errors.service_id" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="create-name">Nama Loket</Label>
-                        <Input id="create-name" v-model="createForm.name" placeholder="Loket 1" />
-                        <InputError :message="errors.name" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="create-officer">Petugas</Label>
-                        <Input id="create-officer" v-model="createForm.officer_name" placeholder="Nama petugas" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="create-sort">Urutan</Label>
-                        <Input id="create-sort" v-model.number="createForm.sort_order" type="number" />
-                    </div>
-                    <div class="flex items-end gap-2">
-                        <Label class="flex items-center gap-2">
-                            <Checkbox v-model="createForm.is_active" />
-                            Aktif
-                        </Label>
-                        <Button type="submit">Tambah</Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Daftar Loket</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p v-if="lokets.length === 0" class="text-sm text-muted-foreground">
-                    Belum ada loket.
+    <div class="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
+        <header class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold">Loket</h1>
+                <p class="mt-1 text-muted-foreground">
+                    {{ lokets.length }} loket · {{ activeCount }} aktif melayani
                 </p>
-                <Table v-else>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Loket</TableHead>
-                            <TableHead>Layanan</TableHead>
-                            <TableHead>Petugas</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead class="text-right">Urutan</TableHead>
-                            <TableHead class="text-right"><span class="sr-only">Aksi</span></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow v-for="loket in lokets" :key="loket.id">
-                            <TableCell class="font-medium">{{ loket.name }}</TableCell>
-                            <TableCell>
-                                <Badge
-                                    :style="loket.service.color ? { backgroundColor: loket.service.color, color: '#fff' } : undefined"
-                                >
-                                    {{ loket.service.name }}
-                                </Badge>
-                            </TableCell>
-                            <TableCell :class="loket.officer_name ? undefined : 'text-muted-foreground'">{{ loket.officer_name ?? '—' }}</TableCell>
-                            <TableCell>
-                                <Badge :variant="loket.is_active ? 'default' : 'secondary'">
-                                    {{ loket.is_active ? 'Aktif' : 'Nonaktif' }}
-                                </Badge>
-                            </TableCell>
-                            <TableCell class="text-right tabular-nums">{{ loket.sort_order }}</TableCell>
-                            <TableCell>
-                                <div class="flex justify-end gap-2">
-                                    <Button size="sm" variant="outline" @click="openEdit(loket)">Ubah</Button>
-                                    <Button size="sm" variant="destructive" @click="confirmDelete(loket)">Hapus</Button>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+            </div>
+            <Button :disabled="services.length === 0" @click="openCreate">
+                <Plus class="size-4" aria-hidden="true" />
+                Tambah Loket
+            </Button>
+        </header>
 
-        <Dialog v-model:open="editOpen">
+        <p
+            v-if="services.length === 0"
+            class="rounded-xl border border-dashed p-10 text-center text-muted-foreground"
+        >
+            Buat layanan terlebih dahulu di menu
+            <a
+                href="/admin/services"
+                class="font-medium text-foreground underline underline-offset-4"
+                >Layanan</a
+            >, lalu tambahkan loket untuk melayaninya.
+        </p>
+
+        <template v-else>
+            <!-- Filter chips: jump straight to one service's desks. -->
+            <div
+                v-if="services.length > 1"
+                role="group"
+                aria-label="Saring berdasarkan layanan"
+                class="flex flex-wrap gap-2"
+            >
+                <Button
+                    size="sm"
+                    :variant="filter === 'all' ? 'default' : 'outline'"
+                    :aria-pressed="filter === 'all'"
+                    @click="filter = 'all'"
+                >
+                    Semua · {{ lokets.length }}
+                </Button>
+                <Button
+                    v-for="service in services"
+                    :key="service.id"
+                    size="sm"
+                    :variant="filter === service.id ? 'default' : 'outline'"
+                    :aria-pressed="filter === service.id"
+                    @click="filter = service.id"
+                >
+                    {{ service.name }} ·
+                    {{ countByService.get(service.id) ?? 0 }}
+                </Button>
+            </div>
+
+            <div
+                v-if="visibleLokets.length === 0"
+                class="flex flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center text-muted-foreground"
+            >
+                <p>
+                    Belum ada loket{{
+                        filter === 'all' ? '' : ' untuk layanan ini'
+                    }}.
+                </p>
+                <Button variant="outline" @click="openCreate">
+                    <Plus class="size-4" aria-hidden="true" />
+                    Tambah Loket
+                </Button>
+            </div>
+
+            <Table v-else>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Loket</TableHead>
+                        <TableHead>Layanan</TableHead>
+                        <TableHead>Petugas</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead class="text-right">Urutan</TableHead>
+                        <TableHead class="text-right"
+                            ><span class="sr-only">Aksi</span></TableHead
+                        >
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow
+                        v-for="loket in visibleLokets"
+                        :key="loket.id"
+                        :class="{ 'text-muted-foreground': !loket.is_active }"
+                    >
+                        <TableCell class="font-medium">{{
+                            loket.name
+                        }}</TableCell>
+                        <TableCell>
+                            <span
+                                class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
+                                :style="badgeStyle(loket.service.color)"
+                            >
+                                {{ loket.service.name }}
+                            </span>
+                        </TableCell>
+                        <TableCell>
+                            <span v-if="loket.officer_name">{{
+                                loket.officer_name
+                            }}</span>
+                            <span v-else class="text-muted-foreground"
+                                >Belum ditentukan</span
+                            >
+                        </TableCell>
+                        <TableCell>
+                            <label
+                                class="flex w-fit cursor-pointer items-center gap-3"
+                            >
+                                <Switch
+                                    :model-value="loket.is_active"
+                                    :disabled="togglingId === loket.id"
+                                    @update:model-value="
+                                        (value: boolean) =>
+                                            setActive(loket, value)
+                                    "
+                                />
+                                <span class="text-sm">{{
+                                    loket.is_active ? 'Aktif' : 'Nonaktif'
+                                }}</span>
+                            </label>
+                        </TableCell>
+                        <TableCell class="text-right tabular-nums">{{
+                            loket.sort_order
+                        }}</TableCell>
+                        <TableCell>
+                            <div class="flex justify-end gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    @click="openEdit(loket)"
+                                >
+                                    <Pencil class="size-4" aria-hidden="true" />
+                                    Ubah
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    class="text-destructive hover:text-destructive"
+                                    @click="confirmDelete(loket)"
+                                >
+                                    <Trash2 class="size-4" aria-hidden="true" />
+                                    Hapus
+                                </Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </template>
+
+        <Dialog v-model:open="formOpen">
             <DialogContent>
-                <form class="space-y-4" @submit.prevent="submitEdit">
+                <form class="space-y-5" @submit.prevent="submit">
                     <DialogHeader>
-                        <DialogTitle>Ubah Loket</DialogTitle>
+                        <DialogTitle>{{
+                            editing ? `Ubah ${editing.name}` : 'Tambah Loket'
+                        }}</DialogTitle>
+                        <DialogDescription>
+                            Loket aktif muncul di pilihan halaman Operator dan
+                            di layar Display.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div class="grid gap-2">
-                        <Label for="edit-service">Layanan</Label>
-                        <Select v-model="editForm.service_id">
-                            <SelectTrigger id="edit-service" class="w-full">
+                        <Label for="loket-service">Layanan</Label>
+                        <Select v-model="form.service_id">
+                            <SelectTrigger id="loket-service" class="w-full">
                                 <SelectValue placeholder="Pilih layanan..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -278,27 +401,72 @@ function submitDelete() {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                        <InputError :message="form.errors.service_id" />
                     </div>
-                    <div class="grid gap-2">
-                        <Label for="edit-name">Nama Loket</Label>
-                        <Input id="edit-name" v-model="editForm.name" />
-                        <InputError :message="errors.name" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="edit-officer">Petugas</Label>
-                        <Input id="edit-officer" v-model="editForm.officer_name" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="edit-sort">Urutan</Label>
-                        <Input id="edit-sort" v-model.number="editForm.sort_order" type="number" />
-                    </div>
-                    <Label class="flex items-center gap-2">
-                        <Checkbox v-model="editForm.is_active" />
-                        Aktif
-                    </Label>
 
-                    <DialogFooter>
-                        <Button type="submit">Simpan</Button>
+                    <div class="grid gap-2">
+                        <Label for="loket-name">Nama loket</Label>
+                        <Input
+                            id="loket-name"
+                            v-model="form.name"
+                            placeholder="Contoh: Loket KTP 3"
+                            required
+                        />
+                        <InputError :message="form.errors.name" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="loket-officer"
+                            >Petugas
+                            <span class="font-normal text-muted-foreground"
+                                >(opsional)</span
+                            ></Label
+                        >
+                        <Input
+                            id="loket-officer"
+                            v-model="form.officer_name"
+                            placeholder="Nama petugas yang bertugas"
+                        />
+                        <InputError :message="form.errors.officer_name" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="grid gap-2">
+                            <Label for="loket-sort">Urutan tampil</Label>
+                            <Input
+                                id="loket-sort"
+                                v-model.number="form.sort_order"
+                                type="number"
+                                min="0"
+                            />
+                            <InputError :message="form.errors.sort_order" />
+                        </div>
+                        <div class="grid gap-2">
+                            <span class="text-sm leading-none font-medium"
+                                >Status</span
+                            >
+                            <label
+                                class="flex h-9 cursor-pointer items-center gap-3"
+                            >
+                                <Switch v-model="form.is_active" />
+                                <span class="text-sm">{{
+                                    form.is_active ? 'Aktif' : 'Nonaktif'
+                                }}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <DialogFooter class="gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            @click="formOpen = false"
+                            >Batal</Button
+                        >
+                        <Button type="submit" :disabled="form.processing">
+                            <Spinner v-if="form.processing" />
+                            {{ editing ? 'Simpan Perubahan' : 'Tambah Loket' }}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -307,11 +475,38 @@ function submitDelete() {
         <Dialog v-model:open="deleteOpen">
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Hapus loket "{{ deletingLoket?.name }}"?</DialogTitle>
+                    <DialogTitle>Hapus {{ deleting?.name }}?</DialogTitle>
+                    <DialogDescription>
+                        Riwayat nomor antrian yang pernah dilayani loket ini
+                        tetap tersimpan.
+                        <template v-if="deleting?.is_active">
+                            Jika loket hanya tidak dipakai sementara, cukup
+                            nonaktifkan.
+                        </template>
+                    </DialogDescription>
                 </DialogHeader>
                 <DialogFooter class="gap-2">
-                    <Button variant="secondary" @click="deleteOpen = false">Batal</Button>
-                    <Button variant="destructive" @click="submitDelete">Hapus</Button>
+                    <Button variant="outline" @click="closeDelete"
+                        >Batal</Button
+                    >
+                    <Button
+                        v-if="deleting?.is_active"
+                        variant="secondary"
+                        :disabled="togglingId !== null"
+                        @click="
+                            deleting && setActive(deleting, false, closeDelete)
+                        "
+                    >
+                        Nonaktifkan saja
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        :disabled="deleteProcessing"
+                        @click="submitDelete"
+                    >
+                        <Spinner v-if="deleteProcessing" />
+                        Hapus
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
