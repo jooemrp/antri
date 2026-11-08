@@ -1,17 +1,17 @@
 # Antrian Disdukcapil
 
-Sistem antrian (queue management) untuk **Dinas Kependudukan dan Pencatatan Sipil (Disdukcapil)** dengan dua jalur layanan — **KTP** dan **KK (Kartu Keluarga)**.
+Sistem antrian (queue management) untuk **Dinas Kependudukan dan Pencatatan Sipil (Disdukcapil)** dengan tiga jalur layanan awal — **KTP**, **KK (Kartu Keluarga)**, dan **Akta**.
 
 Warga mengambil nomor di **kiosk**, petugas memanggil nomor dari **operator console**, dan **layar display** di ruang tunggu menampilkan papan panggilan lengkap dengan **pengumuman suara** (Bahasa Indonesia). Jumlah loket, nama petugas, serta tampilan (nama aplikasi, logo, warna) dikelola dari **dashboard admin**.
 
 ## Fitur
 
-- **Kiosk** (`/kiosk`, publik) — layar sentuh; warga memilih KTP atau KK dan mendapat nomor antrian yang bisa dicetak. Penomoran berurutan per layanan dan reset setiap hari (`A-001` untuk KTP, `B-001` untuk KK). Di bawah tombol layanan tertera nomor terakhir diambil dan nomor yang sedang dipanggil untuk tiap layanan, diperbarui tiap 3 detik.
+- **Kiosk** (`/kiosk`, publik) — layar sentuh; warga memilih layanan dan mendapat nomor antrian yang bisa dicetak. Penomoran berurutan per layanan dan reset setiap hari (`A-001` untuk KTP, `B-001` untuk KK, `C-001` untuk Akta). Di bawah tombol layanan tertera nomor terakhir diambil dan nomor yang sedang dipanggil untuk tiap layanan, diperbarui tiap 3 detik.
 - **Layar Display / pemanggil** (`/display`, publik) — untuk TV ruang tunggu: panel "sedang memanggil", papan per loket, running text, dan **pengumuman suara** via Web Speech API (`id-ID`) beserta nada bel; mengumumkan ulang saat nomor dipanggil ulang. Tema gelap atau terang dapat dipilih dari dashboard.
 - **Operator console** (`/operator`, login) — petugas memilih loketnya lalu **Panggil Berikutnya / Panggil Ulang / Lewati / Selesai**. Antrian menyegar otomatis (polling tiap 3 detik).
 - **Dashboard** (`/dashboard`, login) — statistik hari ini (total, menunggu, selesai, loket aktif) dan rincian per layanan.
 - **Kelola Loket** (`/admin/lokets`, login) — CRUD loket; tambah loket sebanyak yang dibutuhkan, masing-masing dengan **nama loket + nama petugas**.
-- **Kelola Layanan** (`/admin/services`, login) — ubah nama, prefix, dan warna jalur layanan (KTP/KK).
+- **Kelola Layanan** (`/admin/services`, login) — ubah nama, prefix, dan warna jalur layanan (KTP/KK/Akta).
 - **Tampilan / Branding** (`/admin/branding`, login) — nama aplikasi, unggah logo, warna primer/aksen, running text (bisa lebih dari satu), serta tema layar display. Branding diterapkan ke seluruh aplikasi.
 
 ## Teknologi
@@ -71,7 +71,7 @@ Untuk pengembangan cepat tanpa MySQL, set `DB_CONNECTION=sqlite` dan buat file `
 |---|---|
 | `admin@disdukcapil.test` | `password` |
 
-Seeder juga membuat layanan **KTP** & **KK**, beberapa loket contoh, dan pengaturan branding default. Ganti password admin setelah login pertama.
+Seeder juga membuat layanan **KTP**, **KK** & **Akta**, beberapa loket contoh, dan pengaturan branding default. Ganti password admin setelah login pertama.
 
 ## Peta halaman
 

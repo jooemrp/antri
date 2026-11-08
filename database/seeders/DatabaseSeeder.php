@@ -28,9 +28,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Equal-luminance trio (~0.15): white text clears 4.5:1 on each, and
+        // each clears 3:1 as a frame against both the dark and light display.
         $services = [
             ['name' => 'KTP', 'prefix' => 'A', 'color' => '#2563eb', 'sort_order' => 1],
-            ['name' => 'KK', 'prefix' => 'B', 'color' => '#16a34a', 'sort_order' => 2],
+            ['name' => 'KK', 'prefix' => 'B', 'color' => '#047857', 'sort_order' => 2],
+            ['name' => 'Akta', 'prefix' => 'C', 'color' => '#b45309', 'sort_order' => 3],
         ];
 
         foreach ($services as $data) {
