@@ -318,8 +318,15 @@ Allow about 1.5 - 2 hours for the first setup. Follow the steps in order.
    [ ] Sidebar > Loket: rename the example lokets and officers, delete extras
    [ ] Sidebar > Tampilan: name, logo, colours, running text
 
- Create one account per operator. Note: the /register page is still open to
- anyone on the network; only share the address with staff.
+ Create one account per operator. There is no sign-up page (nobody on the
+ network can make their own account), so accounts are made on the Mini PC.
+ Open Command Prompt and run, changing the name, email and password:
+
+   cd /d C:\antrian
+   php artisan tinker --execute="App\Models\User::create(['name' => 'Siti', 'email' => 'siti@disdukcapil.test', 'password' => 'a-strong-password']);"
+
+ It prints nothing when it works. The operator can then log in and change
+ their own password under Settings > Security.
 
 
 ===============================================================================
