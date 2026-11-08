@@ -7,7 +7,7 @@ use App\Http\Controllers\KioskController;
 use App\Http\Controllers\OperatorController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::redirect('/', '/dashboard')->name('home');
 
 Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk');
 Route::get('/kiosk/state', [KioskController::class, 'state'])->name('kiosk.state');
